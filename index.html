@@ -1072,14 +1072,16 @@ function renderAnalytics(){
   if(zeroEverywhere.length||criticalCities.length){
     warnHTML='<div class="alerts-grid">';
     if(zeroEverywhere.length){
-      const items=zeroEverywhere.slice(0,8).map(p=>`<li>${esc(p.name)}</li>`).join('');
-      const more=zeroEverywhere.length>8?`<li>...ещё ${zeroEverywhere.length-8}</li>`:'';
-      warnHTML+=`<div class="alert-box danger"><div><div class="alert-title"><i class="bi bi-exclamation-triangle-fill"></i>Нулевой остаток везде (${zeroEverywhere.length} тов.)</div><ul class="alert-list">${items}${more}</ul></div></div>`;
+      const vis=zeroEverywhere.slice(0,8).map(p=>`<li>${esc(p.name)}</li>`).join('');
+      const hid=zeroEverywhere.slice(8).map(p=>`<li>${esc(p.name)}</li>`).join('');
+      const moreHtml=hid?`<div id="ze-extra" style="display:none"><ul class="alert-list">${hid}</ul></div><span style="cursor:pointer;color:#3b82f6;font-size:11px;padding:2px 0;display:inline-block" onclick="document.getElementById('ze-extra').style.display='';this.style.display='none'">ещё ${zeroEverywhere.length-8} →</span>`:'';
+      warnHTML+=`<div class="alert-box danger"><div><div class="alert-title"><i class="bi bi-exclamation-triangle-fill"></i>Нулевой остаток везде (${zeroEverywhere.length} тов.)</div><ul class="alert-list">${vis}</ul>${moreHtml}</div></div>`;
     }
     if(criticalCities.length){
-      const items=criticalCities.slice(0,8).map(s=>`<li>${esc(cityName(s.title))}</li>`).join('');
-      const more=criticalCities.length>8?`<li>...ещё ${criticalCities.length-8}</li>`:'';
-      warnHTML+=`<div class="alert-box warn"><div><div class="alert-title"><i class="bi bi-geo-alt-fill"></i>Критический дефицит (${criticalCities.length} гор.)</div><ul class="alert-list">${items}${more}</ul></div></div>`;
+      const vis=criticalCities.slice(0,8).map(s=>`<li>${esc(cityName(s.title))}</li>`).join('');
+      const hid=criticalCities.slice(8).map(s=>`<li>${esc(cityName(s.title))}</li>`).join('');
+      const moreHtml=hid?`<div id="cc-extra" style="display:none"><ul class="alert-list">${hid}</ul></div><span style="cursor:pointer;color:#3b82f6;font-size:11px;padding:2px 0;display:inline-block" onclick="document.getElementById('cc-extra').style.display='';this.style.display='none'">ещё ${criticalCities.length-8} →</span>`:'';
+      warnHTML+=`<div class="alert-box warn"><div><div class="alert-title"><i class="bi bi-geo-alt-fill"></i>Критический дефицит (${criticalCities.length} гор.)</div><ul class="alert-list">${vis}</ul>${moreHtml}</div></div>`;
     }
     warnHTML+='</div>';
   }
@@ -1112,7 +1114,7 @@ function renderAnalytics(){
     const top15=prodSales.filter(p=>p.totalSold>0).slice(0,15);
 
     const abcRows=['A','B','C'].flatMap(cls=>
-      prodSales.filter(p=>p.abc===cls).slice(0,5).map(p=>
+      prodSales.filter(p=>p.abc===cls).map(p=>
         `<tr><td class="rank"><span class="abc-badge abc-${cls}">${cls}</span></td>
          <td class="name" title="${esc(p.name)}">${esc(p.name.length>32?p.name.slice(0,32)+'…':p.name)}</td>
          <td class="val">${fmtNum(p.totalSold)} шт.</td></tr>`
@@ -1132,18 +1134,18 @@ function renderAnalytics(){
         Object.values(salesData).forEach(sm=>{cityGroups[key].totalSold+=sm[sid]||0;});
       });
       const cityVel=Object.values(cityGroups).map(c=>({name:c.name,velocity:c.totalSold/SALES_DAYS,totalSold:c.totalSold})).sort((a,b)=>b.velocity-a.velocity);
-      const strongCities=cityVel.filter(c=>c.velocity>0).slice(0,10);
-      const weakCities=[...cityVel].filter(c=>c.velocity>0).sort((a,b)=>a.velocity-b.velocity).slice(0,10);
+      const strongCities=cityVel.filter(c=>c.velocity>0);
+      const weakCities=[...cityVel].filter(c=>c.velocity>0).sort((a,b)=>a.velocity-b.velocity);
       const TIP_VEL=`Скорость продаж — среднее кол-во товаров,\nпродаваемых в день за последние ${SALES_DAYS} дней.\n\nГруппирует несколько складов одного города вместе.`;
-      citySection=`
-        <div class="a-table-wrap">
-          <div class="a-table-title"><i class="bi bi-lightning-charge" style="color:#16a34a"></i> Быстрые города <span class="help-tip" data-tip="${TIP_VEL}">?</span></div>
-          <table class="a-table"><tbody>${strongCities.map((c,i)=>`<tr><td class="rank">${i+1}</td><td class="name">${esc(c.name)}</td><td class="val good">${fmtVel(c.velocity)} шт./д</td></tr>`).join('')}</tbody></table>
-        </div>
-        <div class="a-table-wrap">
-          <div class="a-table-title"><i class="bi bi-hourglass" style="color:#dc2626"></i> Медленные города <span class="help-tip" data-tip="${TIP_VEL}">?</span></div>
-          <table class="a-table"><tbody>${weakCities.map((c,i)=>`<tr><td class="rank">${i+1}</td><td class="name">${esc(c.name)}</td><td class="val bad">${fmtVel(c.velocity)} шт./д</td></tr>`).join('')}</tbody></table>
-        </div>`;
+      const mkCityRows=(arr,cls,start=0)=>arr.map((c,i)=>`<tr><td class="rank">${start+i+1}</td><td class="name">${esc(c.name)}</td><td class="val ${cls}">${fmtVel(c.velocity)} шт./д</td></tr>`).join('');
+      const mkCitySection=(title,icon,color,all,idSuf)=>{
+        const top=all.slice(0,10), rest=all.slice(10);
+        const restHtml=rest.length?`<div id="${idSuf}" style="display:none;max-height:280px;overflow-y:auto;border-top:1px solid var(--border)"><table class="a-table"><tbody>${mkCityRows(rest,icon==='good'?'good':'bad',10)}</tbody></table></div><button class="btn-sm" style="margin:6px 0 4px 8px;font-size:11px" onclick="toggleMore('${idSuf}',this,${all.length})">Показать все (${all.length})</button>`:'';
+        return`<div class="a-table-wrap"><div class="a-table-title">${title}</div><table class="a-table"><tbody>${mkCityRows(top,icon==='good'?'good':'bad')}</tbody></table>${restHtml}</div>`;
+      };
+      citySection=
+        mkCitySection(`<i class="bi bi-lightning-charge" style="color:#16a34a"></i> Быстрые города <span class="help-tip" data-tip="${TIP_VEL}">?</span>`,'good','#16a34a',strongCities,'fast-more')+
+        mkCitySection(`<i class="bi bi-hourglass" style="color:#dc2626"></i> Медленные города <span class="help-tip" data-tip="${TIP_VEL}">?</span>`,'bad','#dc2626',weakCities,'slow-more');
     }
 
     // "Soon running out": per-city if available, else company-wide estimate
@@ -1649,19 +1651,19 @@ async function runCrmDiagnostic() {
   try {
     const since = new Date();
     since.setDate(since.getDate()-90);
-    // Fetch pipeline list + deals in parallel
-    const [resp, catsResp] = await Promise.all([
+    // Fetch pipeline list + deals in parallel (category.list may 404 on some versions)
+    const [resp, catsSettled] = await Promise.all([
       apiGet(WEBHOOK,'crm.deal.list',{
         'filter[STAGE_SEMANTIC_ID]':'S',
         'filter[>=CLOSEDATE]':since.toISOString().slice(0,10),
         'select[0]':'*','select[1]':'UF_*',
         'order[CLOSEDATE]':'DESC', start:0
       }),
-      apiGet(WEBHOOK,'crm.deal.category.list',{})
+      apiGet(WEBHOOK,'crm.deal.category.list',{}).catch(()=>null)
     ]);
     // Build category ID→name map
     const catsMap=new Map([['0','Общая воронка']]);
-    extractArr(catsResp).forEach(c=>catsMap.set(String(c.ID||c.id),c.NAME||c.name||'—'));
+    if(catsSettled) extractArr(catsSettled).forEach(c=>catsMap.set(String(c.ID||c.id),c.NAME||c.name||'—'));
     const deals = extractArr(resp).slice(0,5);
     if(!deals.length){el.innerHTML='<p>Нет закрытых сделок за 90 дней с нужными данными.</p>';return;}
 
@@ -1760,6 +1762,12 @@ async function runCrmDiagnostic() {
   } catch(e) {
     el.innerHTML=`<p style="color:#dc2626">Ошибка: ${esc(e.message)}</p>`;
   }
+}
+function toggleMore(id,btn,total){
+  const el=document.getElementById(id);if(!el)return;
+  const show=el.style.display==='none';
+  el.style.display=show?'':'none';
+  if(btn)btn.textContent=show?'Свернуть':`Показать все (${total})`;
 }
 function saveExclCat(){
   const val=document.getElementById('excl-cat-input').value.trim();
