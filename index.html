@@ -8,20 +8,43 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: Arial, sans-serif; font-size: 13px; background: #f0f2f5; color: #333; }
 
+/* ---- SETUP SCREEN ---- */
+#setup {
+  display: flex; align-items: center; justify-content: center; height: 100vh;
+}
+.setup-card {
+  background: #fff; border-radius: 10px; padding: 36px 40px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.1); width: 480px; max-width: 95vw;
+}
+.setup-card h2 { font-size: 20px; margin-bottom: 8px; color: #1e3a5f; }
+.setup-card p  { font-size: 13px; color: #666; margin-bottom: 20px; line-height: 1.5; }
+.setup-card label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: #555; }
+.setup-card input[type=text] {
+  width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px;
+  font-size: 13px; margin-bottom: 8px;
+}
+.setup-card input[type=text]:focus { outline: none; border-color: #2563eb; }
+.setup-hint { font-size: 11px; color: #888; margin-bottom: 16px; line-height: 1.4; }
+.btn-big {
+  width: 100%; padding: 11px; background: #2563eb; color: #fff;
+  border: none; border-radius: 6px; font-size: 14px; cursor: pointer;
+}
+.btn-big:hover { background: #1d4ed8; }
+.setup-error { color: #dc2626; font-size: 12px; margin-top: 10px; display: none; }
+
 /* ---- LOADING ---- */
 #loading {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  display: none; flex-direction: column; align-items: center; justify-content: center;
   height: 100vh; gap: 16px;
 }
 .spinner {
-  width: 40px; height: 40px;
-  border: 4px solid #ddd; border-top-color: #2563eb;
+  width: 40px; height: 40px; border: 4px solid #ddd; border-top-color: #2563eb;
   border-radius: 50%; animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 #load-status { color: #555; font-size: 14px; }
 .progress-bar-wrap { width: 280px; height: 6px; background: #ddd; border-radius: 3px; }
-.progress-bar { height: 100%; background: #2563eb; border-radius: 3px; transition: width 0.3s; width: 0; }
+.progress-bar { height: 100%; background: #2563eb; border-radius: 3px; transition: width 0.3s; }
 
 /* ---- LAYOUT ---- */
 #app { display: none; height: 100vh; flex-direction: column; }
@@ -30,11 +53,10 @@ body { font-family: Arial, sans-serif; font-size: 13px; background: #f0f2f5; col
 .toolbar {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   padding: 8px 12px; background: #fff; border-bottom: 1px solid #ddd;
-  position: sticky; top: 0; z-index: 200;
 }
 .toolbar input[type=text] {
   padding: 5px 10px; border: 1px solid #ccc; border-radius: 4px;
-  font-size: 12px; width: 175px;
+  font-size: 12px; width: 170px;
 }
 .toolbar input[type=text]:focus { outline: none; border-color: #2563eb; }
 .btn {
@@ -45,6 +67,7 @@ body { font-family: Arial, sans-serif; font-size: 13px; background: #f0f2f5; col
 .btn-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
 .btn-primary:hover { background: #1d4ed8; }
 .btn-active { background: #e0e7ff; border-color: #6366f1; color: #4338ca; }
+.btn-sm { font-size: 11px; padding: 3px 8px; }
 #last-update { color: #999; font-size: 11px; margin-left: auto; white-space: nowrap; }
 .admin-badge {
   display: inline-block; padding: 2px 8px; background: #fef3c7;
@@ -60,7 +83,7 @@ table { border-collapse: collapse; background: #fff; }
 thead th {
   background: #1e3a5f; color: #fff;
   padding: 4px 6px; border: 1px solid #2d5282;
-  font-size: 11px; font-weight: 600; white-space: nowrap;
+  font-size: 11px; font-weight: 600;
   position: sticky; top: 0; z-index: 100;
 }
 thead th.product-col {
@@ -69,12 +92,10 @@ thead th.product-col {
 }
 thead th.store-col {
   writing-mode: vertical-lr; transform: rotate(180deg);
-  height: 110px; text-align: left; vertical-align: bottom;
-  cursor: default;
+  height: 110px; text-align: left; vertical-align: bottom; white-space: nowrap;
 }
 thead th.total-col { text-align: center; min-width: 55px; }
 
-tbody tr { transition: background 0.1s; }
 tbody tr:hover td { filter: brightness(0.95); }
 tbody tr.hidden-row { display: none; }
 .show-hidden tbody tr.hidden-row { display: table-row; }
@@ -88,7 +109,7 @@ tbody td.product-col {
   position: sticky; left: 0; background: #f8fafc;
   text-align: left; z-index: 50;
   font-size: 12px; border-right: 2px solid #cbd5e1;
-  max-width: 240px; white-space: normal; word-break: break-word;
+  max-width: 230px; white-space: normal; word-break: break-word;
 }
 tbody td.amount-ok   { background: #dcfce7; color: #166534; }
 tbody td.amount-low  { background: #fef9c3; color: #854d0e; }
@@ -97,7 +118,7 @@ tbody td.amount-na   { background: #f9fafb; color: #d1d5db; }
 tbody td.total-col   { background: #e0f2fe; font-weight: 700; color: #0369a1; }
 
 .hide-btn {
-  margin-left: 6px; font-size: 11px; cursor: pointer;
+  margin-left: 5px; font-size: 11px; cursor: pointer;
   color: #94a3b8; border: none; background: none; padding: 0 2px;
   vertical-align: middle; display: none;
 }
@@ -112,26 +133,38 @@ tbody tr:hover .hide-btn { display: inline; }
 /* ---- SUMMARY BAR ---- */
 .summary {
   padding: 6px 12px; background: #f8fafc; border-top: 1px solid #e5e7eb;
-  font-size: 12px; color: #555; display: flex; gap: 20px; flex-wrap: wrap;
-  align-items: center;
+  font-size: 12px; color: #555; display: flex; gap: 20px; flex-wrap: wrap; align-items: center;
 }
 .summary span { display: flex; align-items: center; gap: 5px; }
 .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
 .dot-ok   { background: #22c55e; }
 .dot-low  { background: #eab308; }
 .dot-zero { background: #ef4444; }
-
-/* ---- NO DATA ---- */
 .no-data { padding: 40px; text-align: center; color: #999; font-size: 14px; }
 </style>
 </head>
 <body>
 
+<!-- SETUP SCREEN -->
+<div id="setup">
+  <div class="setup-card">
+    <h2>Остатки по городам</h2>
+    <p>Для первого запуска укажите URL входящего вебхука Битрикс24.<br>
+       Он сохранится в браузере и больше не потребуется.</p>
+    <label>URL вебхука</label>
+    <input type="text" id="webhook-input"
+      placeholder="https://b24.example.ru/rest/1/xxxxxxxx/">
+    <div class="setup-hint">Настройки → Разработчикам → Входящий вебхук &nbsp;(права: Торговый каталог)</div>
+    <button class="btn-big" onclick="saveWebhook()">Подключиться</button>
+    <div class="setup-error" id="setup-error"></div>
+  </div>
+</div>
+
 <!-- LOADING SCREEN -->
 <div id="loading">
   <div class="spinner"></div>
-  <div id="load-status">Подключаемся к Битрикс24...</div>
-  <div class="progress-bar-wrap"><div class="progress-bar" id="progress"></div></div>
+  <div id="load-status">Загружаем данные...</div>
+  <div class="progress-bar-wrap"><div class="progress-bar" id="progress" style="width:0"></div></div>
 </div>
 
 <!-- APP -->
@@ -140,10 +173,9 @@ tbody tr:hover .hide-btn { display: inline; }
     <input type="text" id="q-product" placeholder="🔍 Поиск по товару" oninput="applyFilters()">
     <input type="text" id="q-city"    placeholder="🔍 Поиск по городу"  oninput="applyFilters()">
     <button class="btn" id="btn-hidden" onclick="toggleShowHidden()">Скрытые товары</button>
-    <button class="btn btn-primary" onclick="reload()">↻ Обновить</button>
-    <div id="admin-controls" style="display:none">
-      <span class="admin-badge">⚙ Администратор</span>
-    </div>
+    <button class="btn btn-primary" onclick="reloadData()">↻ Обновить</button>
+    <span id="admin-badge" style="display:none" class="admin-badge">⚙ Администратор</span>
+    <button class="btn btn-sm" onclick="resetWebhook()">⚙ Вебхук</button>
     <span id="last-update"></span>
   </div>
 
@@ -165,138 +197,205 @@ tbody tr:hover .hide-btn { display: inline; }
   </div>
 </div>
 
-<script src="https://api.bitrix24.com/api/v1/"></script>
 <script>
 // ================================================================
 // CONFIG
 // ================================================================
 const LOW_STOCK      = 5;
 const SKIP_STORES    = ['Склад производства', 'В пути'];
-const MAIN_IBLOCK_ID = 14;   // Товарный каталог CRM
+const MAIN_IBLOCK_ID = 14;
 const HIDDEN_KEY     = 'inv_hidden_v1';
+const WEBHOOK_KEY    = 'inv_webhook_v1';
+const ADMIN_KEY      = 'inv_is_admin';
 
 // ================================================================
 // STATE
 // ================================================================
-let stores   = [];     // [{id, title}]
-let products = {};     // id → {id, name, hidden, iblockId}
-let stock    = {};     // productId → {storeId → amount}
-let isAdmin  = false;
+let WEBHOOK    = '';
+let stores     = [];
+let products   = {};
+let stock      = {};
+let isAdmin    = false;
 let showHidden = false;
 
 // ================================================================
-// INIT
+// STARTUP
 // ================================================================
-BX24.init(async function() {
-  try {
-    setProgress(5);
-    setStatus('Получаем данные пользователя...');
-    const user = await bxCall('user.current', {});
-    isAdmin = !!user.ADMIN;
-    if (isAdmin) document.getElementById('admin-controls').style.display = 'inline-flex';
-    setProgress(10);
-    await loadAll();
-  } catch(e) {
-    setStatus('Ошибка загрузки: ' + (e.message || JSON.stringify(e)));
+(function init() {
+  const saved = localStorage.getItem(WEBHOOK_KEY);
+  if (saved) {
+    WEBHOOK = saved;
+    isAdmin = localStorage.getItem(ADMIN_KEY) === '1';
+    if (isAdmin) document.getElementById('admin-badge').style.display = 'inline-block';
+    show('loading');
+    loadAll();
+  } else {
+    show('setup');
   }
-});
+})();
+
+async function saveWebhook() {
+  const raw = document.getElementById('webhook-input').value.trim();
+  if (!raw) return;
+  const url = raw.endsWith('/') ? raw : raw + '/';
+  const errEl = document.getElementById('setup-error');
+  errEl.style.display = 'none';
+  try {
+    const test = await apiGet(url, 'catalog.store.list', { 'select[0]': 'ID', start: 0 });
+    if (!test || !Array.isArray(test.result)) throw new Error('Неверный ответ от API');
+    WEBHOOK = url;
+    localStorage.setItem(WEBHOOK_KEY, url);
+    try {
+      const u = await apiGet(url, 'user.current', {});
+      isAdmin = !!(u && u.result && u.result.ADMIN);
+    } catch { isAdmin = false; }
+    localStorage.setItem(ADMIN_KEY, isAdmin ? '1' : '0');
+    if (isAdmin) document.getElementById('admin-badge').style.display = 'inline-block';
+    show('loading');
+    loadAll();
+  } catch(e) {
+    errEl.textContent = 'Ошибка подключения: ' + (e.message || 'проверьте URL вебхука');
+    errEl.style.display = 'block';
+  }
+}
+
+function resetWebhook() {
+  if (!confirm('Сбросить вебхук? Потребуется ввести его заново.')) return;
+  localStorage.removeItem(WEBHOOK_KEY);
+  localStorage.removeItem(ADMIN_KEY);
+  location.reload();
+}
 
 // ================================================================
 // LOAD ALL DATA
 // ================================================================
 async function loadAll() {
-  setStatus('Загружаем список складов...');
-  const rawStores = await fetchAll('catalog.store.list', {
-    select: ['ID', 'TITLE', 'ACTIVE'],
-    filter: { ACTIVE: 'Y' }
-  }, 10, 30);
+  try {
+    setStatus('Загружаем склады...');
+    const rawStores = await fetchAll('catalog.store.list', {
+      'select[0]': 'ID', 'select[1]': 'TITLE', 'select[2]': 'ACTIVE', 'filter[ACTIVE]': 'Y'
+    }, 0, 30);
 
-  stores = rawStores
-    .filter(s => !SKIP_STORES.includes(s.title))
-    .sort((a, b) => cityName(a.title).localeCompare(cityName(b.title), 'ru'));
+    stores = rawStores
+      .filter(s => !SKIP_STORES.includes(s.title))
+      .sort((a, b) => cityName(a.title).localeCompare(cityName(b.title), 'ru'));
 
-  setStatus('Загружаем остатки со складов...');
-  const rawStock = await fetchAll('catalog.storeproduct.list', {
-    select: ['PRODUCT_ID', 'STORE_ID', 'AMOUNT', 'QUANTITY_RESERVED']
-  }, 30, 70);
+    setStatus('Загружаем остатки...');
+    const rawStock = await fetchAll('catalog.storeproduct.list', {
+      'select[0]': 'PRODUCT_ID', 'select[1]': 'STORE_ID', 'select[2]': 'AMOUNT'
+    }, 30, 75);
 
-  stock = {};
-  const productIds = new Set();
-  rawStock.forEach(r => {
-    const pid = String(r.productId);
-    const sid = String(r.storeId);
-    if (!stock[pid]) stock[pid] = {};
-    stock[pid][sid] = parseFloat(r.amount) || 0;
-    productIds.add(pid);
-  });
+    stock = {};
+    const productIds = new Set();
+    rawStock.forEach(r => {
+      const pid = String(r.productId !== undefined ? r.productId : r.PRODUCT_ID);
+      const sid = String(r.storeId   !== undefined ? r.storeId   : r.STORE_ID);
+      const amt = parseFloat(r.amount !== undefined ? r.amount   : r.AMOUNT) || 0;
+      if (!stock[pid]) stock[pid] = {};
+      stock[pid][sid] = amt;
+      productIds.add(pid);
+    });
 
-  setStatus(`Загружаем названия ${productIds.size} товаров...`);
-  await loadProducts([...productIds]);
+    setStatus('Загружаем товары (' + productIds.size + ')...');
+    await loadProducts([...productIds]);
 
-  setProgress(100);
-  document.getElementById('loading').style.display = 'none';
-  document.getElementById('app').style.display = 'flex';
-  document.getElementById('last-update').textContent =
-    'Обновлено: ' + new Date().toLocaleTimeString('ru-RU');
-  render();
+    setProgress(100);
+    show('app');
+    document.getElementById('last-update').textContent =
+      'Обновлено: ' + new Date().toLocaleTimeString('ru-RU');
+    render();
+  } catch(e) {
+    setStatus('Ошибка: ' + (e.message || JSON.stringify(e)));
+  }
 }
 
 async function loadProducts(ids) {
   const hidden = getHiddenSet();
-  for (let i = 0; i < ids.length; i += 50) {
-    const chunk = ids.slice(i, i + 50);
-    const batch = {};
-    chunk.forEach(id => { batch['p' + id] = ['catalog.product.get', { id: parseInt(id) }]; });
-    const res = await bxBatch(batch);
-    Object.values(res).forEach(item => {
-      if (!item || !item.id) return;
-      products[String(item.id)] = {
-        id:       String(item.id),
-        name:     item.name || '(без названия)',
-        iblockId: item.iblockId,
-        hidden:   hidden.has(String(item.id))
-      };
-    });
-    setProgress(70 + 25 * ((i + 50) / ids.length));
+  for (let i = 0; i < ids.length; i += 49) {
+    const chunk = ids.slice(i, i + 49);
+    const cmds = {};
+    chunk.forEach(id => { cmds['p' + id] = 'catalog.product.get?id=' + parseInt(id); });
+    const res = await apiBatch(cmds);
+    if (res) {
+      Object.values(res).forEach(item => {
+        if (!item || !item.id) return;
+        products[String(item.id)] = {
+          id: String(item.id), name: item.name || '(без названия)',
+          iblockId: item.iblockId, hidden: hidden.has(String(item.id))
+        };
+      });
+    }
+    setProgress(75 + 20 * Math.min((i + 49) / ids.length, 1));
   }
 }
 
 // ================================================================
-// GENERIC PAGINATED FETCH (uses batch for speed)
+// PAGINATED FETCH WITH BATCH
 // ================================================================
 async function fetchAll(method, params, progStart, progEnd) {
-  const first = await bxCallFull(method, { ...params, start: 0 });
-  const results = [...(first.data || [])];
-  const total   = first.total || 0;
-  setProgress(progStart + (progEnd - progStart) * 0.2);
-
-  if (total <= 50) {
-    setProgress(progEnd);
-    return results;
-  }
+  const first = await apiGet(WEBHOOK, method, { ...params, start: 0 });
+  const results = [...(first.result || [])];
+  const total   = parseInt(first.total) || 0;
+  setProgress(progStart + (progEnd - progStart) * 0.15);
+  if (total <= 50) { setProgress(progEnd); return results; }
 
   const starts = [];
   for (let s = 50; s < total; s += 50) starts.push(s);
 
-  const BATCH_SZ = 50;
-  for (let i = 0; i < starts.length; i += BATCH_SZ) {
-    const chunk = starts.slice(i, i + BATCH_SZ);
-    const batch = {};
+  for (let i = 0; i < starts.length; i += 49) {
+    const chunk = starts.slice(i, i + 49);
+    const cmds = {};
     chunk.forEach((s, idx) => {
-      batch['r' + idx] = [method, { ...params, start: s }];
+      cmds['r' + idx] = method + '?' + buildQS({ ...params, start: s });
     });
-    const res = await bxBatch(batch);
-    Object.values(res).forEach(items => {
-      if (Array.isArray(items)) results.push(...items);
-    });
-    const pct = progStart + (progEnd - progStart) * ((i + BATCH_SZ) / starts.length);
-    setProgress(Math.min(pct, progEnd));
+    const res = await apiBatch(cmds);
+    if (res) {
+      Object.values(res).forEach(items => {
+        if (Array.isArray(items)) results.push(...items);
+      });
+    }
+    setProgress(progStart + (progEnd - progStart) * Math.min((i + 49) / starts.length, 1));
   }
   return results;
 }
 
 // ================================================================
-// RENDER TABLE
+// API HELPERS
+// ================================================================
+async function apiGet(base, method, params) {
+  const qs = buildQS(params);
+  const r = await fetch(base + method + (qs ? '?' + qs : ''));
+  if (!r.ok) throw new Error(method + ' вернул HTTP ' + r.status);
+  return r.json();
+}
+
+async function apiBatch(cmds) {
+  const body = new URLSearchParams();
+  Object.keys(cmds).forEach(k => body.append('cmd[' + k + ']', cmds[k]));
+  const r = await fetch(WEBHOOK + 'batch', { method: 'POST', body });
+  if (!r.ok) throw new Error('batch HTTP ' + r.status);
+  const j = await r.json();
+  return j.result && j.result.result;
+}
+
+function buildQS(obj) {
+  const parts = [];
+  function enc(key, val) {
+    if (val === null || val === undefined) return;
+    if (typeof val === 'object' && !Array.isArray(val)) {
+      Object.keys(val).forEach(k => enc(key + '[' + k + ']', val[k]));
+    } else if (Array.isArray(val)) {
+      val.forEach((v, i) => enc(key + '[' + i + ']', v));
+    } else {
+      parts.push(encodeURIComponent(key) + '=' + encodeURIComponent(val));
+    }
+  }
+  Object.keys(obj || {}).forEach(k => enc(k, obj[k]));
+  return parts.join('&');
+}
+
+// ================================================================
+// RENDER
 // ================================================================
 function render() {
   const cityQ = document.getElementById('q-city').value.toLowerCase().trim();
@@ -311,72 +410,52 @@ function render() {
     .filter(p => !prodQ || p.name.toLowerCase().includes(prodQ))
     .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
 
-  const tbl   = document.getElementById('tbl');
+  const tbl    = document.getElementById('tbl');
   const noData = document.getElementById('no-data');
 
-  if (visProducts.length === 0 || visStores.length === 0) {
-    tbl.style.display = 'none';
-    noData.style.display = 'block';
-    updateStats(0, 0, 0);
-    return;
+  if (!visProducts.length || !visStores.length) {
+    tbl.style.display = 'none'; noData.style.display = 'block';
+    updateStats(0, 0, 0); return;
   }
-  tbl.style.display = '';
-  noData.style.display = 'none';
+  tbl.style.display = ''; noData.style.display = 'none';
 
-  // THEAD
-  let headHtml = '<tr>';
-  headHtml += '<th class="product-col">Товар</th>';
+  let head = '<tr><th class="product-col">Товар</th>';
   visStores.forEach(s => {
-    headHtml += `<th class="store-col" title="${escHtml(s.title)}">${escHtml(cityName(s.title))}</th>`;
+    head += `<th class="store-col" title="${esc(s.title)}">${esc(cityName(s.title))}</th>`;
   });
-  headHtml += '<th class="total-col">Итого</th></tr>';
-  document.getElementById('tbl-head').innerHTML = headHtml;
+  head += '<th class="total-col">Итого</th></tr>';
+  document.getElementById('tbl-head').innerHTML = head;
 
-  // TBODY
-  let zeros = 0;
-  let bodyHtml = '';
-
+  let zeros = 0, body = '';
   visProducts.forEach(p => {
-    bodyHtml += `<tr class="${p.hidden ? 'hidden-row' : ''}">`;
-
-    // Product name cell
-    bodyHtml += `<td class="product-col">${escHtml(p.name)}`;
+    body += `<tr class="${p.hidden ? 'hidden-row' : ''}">`;
+    body += `<td class="product-col">${esc(p.name)}`;
     if (isAdmin) {
-      bodyHtml += ` <button class="hide-btn" onclick="toggleHideProduct('${p.id}')" ` +
-        `title="${p.hidden ? 'Показать' : 'Скрыть'}">${p.hidden ? '&#128065;' : '&#10005;'}</button>`;
+      body += ` <button class="hide-btn" onclick="toggleHide('${p.id}')" ` +
+              `title="${p.hidden ? 'Показать' : 'Скрыть'}">${p.hidden ? '&#128065;' : '&#10005;'}</button>`;
     }
-    if (p.hidden) bodyHtml += ' <span class="hidden-label">скрыт</span>';
-    bodyHtml += '</td>';
+    if (p.hidden) body += ' <span class="hidden-label">скрыт</span>';
+    body += '</td>';
 
-    let rowTotal = 0;
+    let total = 0;
     visStores.forEach(s => {
       const sid = String(s.id);
-      const hasProd = stock[p.id] !== undefined;
-      const amt = hasProd && stock[p.id][sid] !== undefined ? stock[p.id][sid] : null;
-
-      rowTotal += (amt || 0);
-      let cls, disp;
-      if (amt === null)       { cls = 'amount-na'; disp = ''; }
-      else if (amt === 0)     { cls = 'amount-zero'; disp = '—'; zeros++; }
-      else if (amt <= LOW_STOCK) { cls = 'amount-low'; disp = amt; }
-      else                    { cls = 'amount-ok'; disp = amt; }
-
-      bodyHtml += `<td class="${cls}" title="${escHtml(s.title)}: ${amt !== null ? amt : 'нет данных'}">${disp}</td>`;
+      const amt = (stock[p.id] && stock[p.id][sid] !== undefined) ? stock[p.id][sid] : null;
+      total += amt || 0;
+      let cls = 'amount-na', disp = '';
+      if (amt !== null) {
+        if (amt === 0)             { cls = 'amount-zero'; disp = '—'; zeros++; }
+        else if (amt <= LOW_STOCK) { cls = 'amount-low';  disp = amt; }
+        else                       { cls = 'amount-ok';   disp = amt; }
+      }
+      body += `<td class="${cls}" title="${esc(s.title)}: ${amt !== null ? amt : '—'}">${disp}</td>`;
     });
-
-    bodyHtml += `<td class="total-col">${rowTotal}</td>`;
-    bodyHtml += '</tr>';
+    body += `<td class="total-col">${total}</td></tr>`;
   });
 
-  document.getElementById('tbl-body').innerHTML = bodyHtml;
+  document.getElementById('tbl-body').innerHTML = body;
   document.getElementById('table-wrap').classList.toggle('show-hidden', showHidden);
   updateStats(visProducts.length, visStores.length, zeros);
-}
-
-function updateStats(prods, strs, zeros) {
-  document.getElementById('stat-products').textContent = prods ? `Товаров: ${prods}` : '';
-  document.getElementById('stat-stores').textContent   = strs  ? `Городов: ${strs}` : '';
-  document.getElementById('stat-zeros').textContent    = zeros ? `Нулевых позиций: ${zeros}` : '';
 }
 
 // ================================================================
@@ -390,10 +469,9 @@ function toggleShowHidden() {
   document.getElementById('table-wrap').classList.toggle('show-hidden', showHidden);
 }
 
-function toggleHideProduct(pid) {
+function toggleHide(pid) {
   if (!isAdmin) return;
-  const p = products[pid];
-  if (!p) return;
+  const p = products[pid]; if (!p) return;
   p.hidden = !p.hidden;
   const h = getHiddenSet();
   if (p.hidden) h.add(pid); else h.delete(pid);
@@ -401,10 +479,9 @@ function toggleHideProduct(pid) {
   render();
 }
 
-function reload() {
+function reloadData() {
   stores = []; products = {}; stock = {};
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('loading').style.display = 'flex';
+  show('loading');
   document.getElementById('progress').style.width = '0';
   loadAll();
 }
@@ -413,53 +490,24 @@ function reload() {
 // HELPERS
 // ================================================================
 function getHiddenSet() {
-  try { return new Set(JSON.parse(localStorage.getItem(HIDDEN_KEY) || '[]')); }
-  catch { return new Set(); }
+  try { return new Set(JSON.parse(localStorage.getItem(HIDDEN_KEY) || '[]')); } catch { return new Set(); }
 }
-
-function cityName(title) {
-  return title.replace(/^Магазин (в|во) /, '').replace(/^Магазин /, '');
+function cityName(t) { return t.replace(/^Магазин (в|во) /, '').replace(/^Магазин /, ''); }
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
-function escHtml(s) {
-  if (!s) return '';
-  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-                  .replace(/"/g, '&quot;');
-}
-
-function setStatus(msg)   { document.getElementById('load-status').textContent = msg; }
-function setProgress(pct) { document.getElementById('progress').style.width = Math.round(pct) + '%'; }
-
-// ================================================================
-// BX24 PROMISE WRAPPERS
-// ================================================================
-function bxCall(method, params) {
-  return new Promise((resolve, reject) => {
-    BX24.callMethod(method, params, res => {
-      if (res.error()) reject(res.error()); else resolve(res.data());
-    });
+function show(id) {
+  ['setup','loading','app'].forEach(s => {
+    const el = document.getElementById(s);
+    el.style.display = s === id ? 'flex' : 'none';
   });
 }
-
-function bxCallFull(method, params) {
-  return new Promise((resolve, reject) => {
-    BX24.callMethod(method, params, res => {
-      if (res.error()) reject(res.error());
-      else resolve({ data: res.data() || [], total: res.total() });
-    });
-  });
-}
-
-function bxBatch(batch) {
-  return new Promise(resolve => {
-    BX24.callBatch(batch, res => {
-      const out = {};
-      Object.keys(res).forEach(k => {
-        out[k] = res[k].data ? res[k].data() : null;
-      });
-      resolve(out);
-    });
-  });
+function setStatus(m)   { document.getElementById('load-status').textContent = m; }
+function setProgress(p) { document.getElementById('progress').style.width = Math.round(p) + '%'; }
+function updateStats(pr, st, z) {
+  document.getElementById('stat-products').textContent = pr ? 'Товаров: ' + pr : '';
+  document.getElementById('stat-stores').textContent   = st ? 'Городов: ' + st : '';
+  document.getElementById('stat-zeros').textContent    = z  ? 'Нулевых: '  + z  : '';
 }
 </script>
 </body>
