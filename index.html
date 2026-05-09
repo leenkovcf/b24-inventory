@@ -749,7 +749,7 @@ let salesStatus='';
 let salesDealsTotal=0, salesDealsMatched=0, salesMatchRate=0;
 async function loadSalesData() {
   if (salesLoading) return;
-  const cached = sessionStorage.getItem('inv_sales_v3');
+  const cached = sessionStorage.getItem('inv_sales_v4');
   if (cached) {
     try { salesData=JSON.parse(cached); if(currentTab==='analytics')renderAnalytics(); return; } catch(e){}
   }
@@ -784,7 +784,7 @@ async function loadSalesData() {
     }
 
     salesData = {};
-    if (!deals.length) { sessionStorage.setItem('inv_sales_v3',JSON.stringify(salesData)); salesLoading=false; if(currentTab==='analytics')renderAnalytics(); return; }
+    if (!deals.length) { sessionStorage.setItem('inv_sales_v4',JSON.stringify(salesData)); salesLoading=false; if(currentTab==='analytics')renderAnalytics(); return; }
 
     // '__ALL__' = company-wide bucket when UF_CRM_SHOP is not filled
     const GLOBAL_STORE='__ALL__';
@@ -852,7 +852,7 @@ async function loadSalesData() {
         });
       });
     }
-    sessionStorage.setItem('inv_sales_v3',JSON.stringify(salesData));
+    sessionStorage.setItem('inv_sales_v4',JSON.stringify(salesData));
   } catch(e) {
     console.warn('CRM unavailable:',e.message);
     salesData=null;
@@ -1051,7 +1051,7 @@ function renderAnalytics(){
     salesHTML=`<div class="alert-box info"><i class="bi bi-info-circle-fill" style="font-size:20px;flex-shrink:0"></i><div><div class="alert-title">Нет данных о продажах за ${SALES_DAYS} дней</div><div style="font-size:12px;margin-top:4px">Закрытые сделки со статусом «Успешно» не найдены за последние ${SALES_DAYS} дней. Проверьте заполнение поля UF_CRM_SHOP в сделках.</div></div></div>`;
   } else if(salesData&&Object.keys(salesData).length>0){
     // Detect data mode: per-store vs company-wide (__ALL__)
-    const hasPerCity = salesMatchRate > 20; // >20% deals have store field filled
+    const hasPerCity = Object.values(salesData).some(sm=>Object.keys(sm).some(k=>k!=='__ALL__'&&sm[k]>0));
     const GLOBAL_STORE='__ALL__';
 
     const prodSales=prods.map(p=>{
@@ -1540,7 +1540,7 @@ function showAllCities(){localStorage.removeItem(HIDDEN_CITIES_KEY);scheduleSave
 
 function reloadData(){
   if(refreshTimer) clearInterval(refreshTimer);
-  sessionStorage.removeItem('inv_sales_v3');
+  sessionStorage.removeItem('inv_sales_v4');
   salesData=undefined;salesLoading=false;stores=[];products={};sections={};stock={};
   show('loading');document.getElementById('progress').style.width='0';loadAll();
 }
@@ -1626,7 +1626,7 @@ async function runCrmDiagnostic() {
     const ufFields=Object.entries(firstDeal).filter(([k,v])=>k.startsWith('UF_')&&v!=null&&v!==''&&v!==false&&String(v)!=='0');
 
     let html='<div style="margin-bottom:12px;padding:8px 10px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;font-size:11px">';
-    html+=`<b>Сделок за 90 дней: ${firstResp.total||0}</b><br>`;
+    html+=`<b>Сделок за 90 дней: ${resp.total||0}</b><br>`;
     html+=ufFields.length
       ?`Пользовательские поля (UF_*) с данными: <b>${ufFields.map(([k,v])=>`${k} = ${esc(String(v).slice(0,30))}`).join(' | ')}</b>`
       :`<span style="color:#dc2626">Все UF_* поля пустые в этой сделке — поле склада/города не заполняется.</span>`;
