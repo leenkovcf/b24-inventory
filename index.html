@@ -148,6 +148,7 @@ tbody td.amount-ok{background:var(--green);color:var(--green-text)}
 tbody td.amount-low{background:var(--yellow);color:var(--yellow-text)}
 tbody td.amount-zero{background:var(--red);color:var(--red-text);font-weight:700}
 tbody td.amount-na{background:#fafafa;color:#d1d5db}
+tbody td.amount-neg{background:#f3e8ea;color:#7f1d1d;font-weight:700}
 tbody td.total-col{background:#e0f2fe;font-weight:700;color:#0369a1}
 .hide-btn{margin-left:4px;font-size:12px;cursor:pointer;color:#cbd5e1;border:none;background:none;padding:0 2px;display:none;vertical-align:middle}
 tbody tr:hover .hide-btn{display:inline}
@@ -546,6 +547,12 @@ let refreshCountdown = 0;
 let chartBar     = null;
 let chartDoughnut = null;
 let saveTimer    = null;
+let runoutData    = undefined;
+let runoutDays    = null;
+let runoutLoading = false;
+let runoutStatus  = '';
+let runoutDealsLoaded = 0;
+let runoutDealsTotal  = 0;
 
 // ================================================================
 // TOOLTIP
@@ -1035,7 +1042,7 @@ function renderStock(){
       const sid=String(s.id),amt=stock[p.id]?.[sid]??null;
       total+=amt||0;
       let cls='amount-na',disp='';
-      if(amt!==null){if(amt===0){cls='amount-zero';disp='—';zeros++;}else if(amt<=LOW_STOCK){cls='amount-low';disp=amt;}else{cls='amount-ok';disp=amt;}}
+      if(amt!==null){if(amt<0){cls='amount-neg';disp=amt;}else if(amt===0){cls='amount-zero';disp='—';zeros++;}else if(amt<=LOW_STOCK){cls='amount-low';disp=amt;}else{cls='amount-ok';disp=amt;}}
       body+=`<td class="${cls}" title="${esc(s.title)}: ${amt??'—'}">${disp}</td>`;
     });
     body+=`<td class="total-col">${total}</td></tr>`;
@@ -1465,7 +1472,7 @@ function setTab(tab,btn){
   btn.classList.add('active');
   document.getElementById('tab-'+tab).classList.add('active');
   const pb=document.getElementById('period-bar');
-  if(pb){pb.style.display=(tab==='analytics'||tab==='runout')?'flex':'none';}
+  if(pb){pb.style.display=(tab==='analytics')?'flex':'none';}
   if(tab==='analytics') renderAnalytics();
   if(tab==='runout')    renderRunout();
   if(tab==='admin')     renderAdmin();
@@ -1473,26 +1480,82 @@ function setTab(tab,btn){
 function renderRunout(){
   const wrap=document.getElementById('runout-wrap');
   if(!wrap) return;
-  if(salesLoading){
-    wrap.innerHTML=`<div class="a-table-wrap"><div class="a-table-title"><i class="bi bi-hourglass-split"></i> Скоро закончатся</div><div class="sales-spinner"><div class="spinner"></div> <span>${salesStatus||'Загружаем данные о продажах...'}</span></div></div>`;
+
+  // Phase 1: period not chosen yet — show description + period selector
+  if(runoutDays===null){
+    wrap.innerHTML=`
+      <div class="a-table-wrap" style="max-width:640px">
+        <div class="a-table-title"><i class="bi bi-hourglass-split" style="color:#dc2626"></i> Отчёт «Дефицит» — как работает</div>
+        <div style="padding:16px 18px">
+          <div class="alert-box info" style="margin-bottom:14px">
+            <i class="bi bi-info-circle-fill" style="font-size:18px;flex-shrink:0"></i>
+            <div style="font-size:12px;line-height:1.75">
+              Для каждой пары <b>товар × склад</b> рассчитывается прогноз исчерпания запасов:<br>
+              &bull; <b>Скорость продаж</b> = продано за период ÷ дней периода<br>
+              &bull; <b>Осталось дней</b> = текущий остаток ÷ скорость продаж<br>
+              В отчёт попадают позиции, где запас закончится <b>раньше конца выбранного периода</b>.<br><br>
+              <span class="days-badge days-urgent" style="display:inline-flex">7 дн.</span> &nbsp;меньше 7 дней &nbsp;·&nbsp;
+              <span class="days-badge days-warn" style="display:inline-flex">14 дн.</span> &nbsp;7–14 дней &nbsp;·&nbsp;
+              <span class="days-badge days-ok" style="display:inline-flex">30 дн.</span> &nbsp;более 14 дней
+            </div>
+          </div>
+          <div class="alert-box warn" style="margin-bottom:18px">
+            <i class="bi bi-clock-history" style="font-size:18px;flex-shrink:0"></i>
+            <div style="font-size:12px;line-height:1.65">
+              <b>Загружаются все сделки за период без ограничений</b> — при объёме 20 000+ сделок загрузка займёт <b>2–5 минут</b>.<br>
+              Данные отчёта независимы от вкладки «Аналитика» — смена периода там не сбрасывает этот отчёт.
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:600">Выберите период для загрузки:</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn" style="font-size:13px;padding:8px 22px" onclick="startRunoutLoad(30)"><i class="bi bi-calendar-range"></i> 30 дней</button>
+            <button class="btn" style="font-size:13px;padding:8px 22px" onclick="startRunoutLoad(60)"><i class="bi bi-calendar-range"></i> 60 дней</button>
+            <button class="btn" style="font-size:13px;padding:8px 22px" onclick="startRunoutLoad(90)"><i class="bi bi-calendar-range"></i> 90 дней</button>
+          </div>
+        </div>
+      </div>`;
     return;
   }
-  if(!salesData||Object.keys(salesData).length===0){
-    wrap.innerHTML=`<div class="alert-box info"><i class="bi bi-info-circle-fill" style="font-size:20px;flex-shrink:0"></i><div><div class="alert-title">Нет данных о продажах</div><div style="font-size:12px;margin-top:4px">Сначала загрузите аналитику продаж на вкладке «Аналитика».</div></div></div>`;
+
+  // Phase 2: loading in progress
+  if(runoutLoading){
+    const pct=runoutDealsTotal>0?Math.round(runoutDealsLoaded/runoutDealsTotal*100):0;
+    wrap.innerHTML=`
+      <div class="a-table-wrap" style="max-width:560px">
+        <div class="a-table-title"><i class="bi bi-hourglass-split"></i> Загрузка данных за ${runoutDays} дней...</div>
+        <div style="padding:22px">
+          <div class="sales-spinner" style="margin-bottom:14px"><div class="spinner"></div> <span>${esc(runoutStatus||'Загружаем...')}</span></div>
+          <div class="progress-wrap" style="width:100%;margin-bottom:8px"><div class="progress-bar" style="width:${pct}%"></div></div>
+          <div style="font-size:11px;color:var(--muted)">${runoutDealsTotal>0?`Сделок: ${fmtNum(runoutDealsLoaded)} из ${fmtNum(runoutDealsTotal)} (${pct}%)`:'Определяем объём данных...'}</div>
+        </div>
+      </div>`;
     return;
   }
+
+  // Phase 3: no data
+  if(!runoutData||Object.keys(runoutData).length===0){
+    wrap.innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding:0 2px">
+        <div style="font-size:13px;font-weight:600">Период: <b>${runoutDays} дн.</b></div>
+        <button class="btn-sm" onclick="runoutDays=null;runoutData=undefined;renderRunout()"><i class="bi bi-arrow-repeat"></i> Сменить период</button>
+      </div>
+      <div class="alert-box info"><i class="bi bi-info-circle-fill" style="font-size:20px;flex-shrink:0"></i><div><div class="alert-title">Нет данных о продажах за ${runoutDays} дней</div><div style="font-size:12px;margin-top:4px">Закрытые сделки не найдены или не совпадают с каталогом. Проверьте поле UF_CRM_SHOP в сделках.</div></div></div>`;
+    return;
+  }
+
+  // Phase 4: render table
   const visStores=getVisStores('');
   const prods=Object.values(products).filter(p=>p.iblockId==MAIN_IBLOCK_ID&&!p.hidden);
-  const hasPerCity=Object.values(salesData).some(sm=>Object.keys(sm).some(k=>k!=='__ALL__'&&sm[k]>0));
-  const THRESH=SALES_DAYS;
+  const hasPerCity=Object.values(runoutData).some(sm=>Object.keys(sm).some(k=>k!=='__ALL__'&&sm[k]>0));
+  const THRESH=runoutDays;
   const runout=[];
   if(hasPerCity){
     prods.forEach(p=>{
       visStores.forEach(s=>{
         const sid=String(s.id);
         const cur=stock[p.id]?.[sid]??null;
-        if(cur===null||cur===0) return;
-        const vel=salesData[p.id]?.[sid]?salesData[p.id][sid]/SALES_DAYS:0;
+        if(cur===null||cur<=0) return;
+        const vel=runoutData[p.id]?.[sid]?runoutData[p.id][sid]/runoutDays:0;
         if(vel<=0) return;
         const days=Math.floor(cur/vel);
         if(days<THRESH) runout.push({product:p.name,city:cityName(s.title),stock:cur,vel,days});
@@ -1500,15 +1563,15 @@ function renderRunout(){
     });
   } else {
     prods.forEach(p=>{
-      const totalSold=Object.values(salesData[p.id]||{}).reduce((a,v)=>a+v,0);
+      const totalSold=Object.values(runoutData[p.id]||{}).reduce((a,v)=>a+v,0);
       if(!totalSold) return;
-      const vel=totalSold/SALES_DAYS;
+      const vel=totalSold/runoutDays;
       const totalStock=visStores.reduce((acc,s)=>acc+(stock[p.id]?.[String(s.id)]??0),0);
       if(!totalStock) return;
       visStores.forEach(s=>{
         const sid=String(s.id);
         const cur=stock[p.id]?.[sid]??null;
-        if(cur===null||cur===0) return;
+        if(cur===null||cur<=0) return;
         const cityVel=vel*(cur/totalStock);
         if(cityVel<=0) return;
         const days=Math.floor(cur/cityVel);
@@ -1517,6 +1580,7 @@ function renderRunout(){
     });
   }
   runout.sort((a,b)=>a.days-b.days);
+
   const runoutCities=[...new Set(runout.map(r=>r.city))].sort();
   const rows=runout.map(r=>{
     const urgCls=r.days<7?'days-urgent':r.days<14?'days-warn':'days-ok';
@@ -1524,13 +1588,128 @@ function renderRunout(){
   }).join('');
   const cityBtns=runoutCities.length>1?`<div class="runout-filters"><span style="font-size:11px;color:var(--muted)">Город:</span><button class="btn-sm active runout-city-btn" onclick="filterRunout('',this)">Все</button>${runoutCities.map(c=>`<button class="btn-sm runout-city-btn" onclick="filterRunout('${esc(c)}',this)">${esc(c)}</button>`).join('')}</div>`:'';
   const tip=hasPerCity?`Товары, которые закончатся на складе в течение ${THRESH} дней.\nСортировка: сначала самые срочные.`:`Оценка: данные суммированы по компании (UF_CRM_SHOP не заполнен).`;
+  const changePeriodBtn=`<button class="btn-sm" onclick="runoutDays=null;runoutData=undefined;renderRunout()"><i class="bi bi-arrow-repeat"></i> Сменить период</button>`;
+
   wrap.innerHTML=runout.length?`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding:0 2px">
+      <div style="font-size:13px;font-weight:600">Период: <b>${runoutDays} дн.</b> <span style="font-weight:400;color:var(--muted);font-size:12px">· ${runout.length} позиций${!hasPerCity?' · оценка':''}</span></div>
+      ${changePeriodBtn}
+    </div>
     <div class="a-table-wrap">
-      <div class="a-table-title"><i class="bi bi-hourglass-split" style="color:#dc2626"></i> Скоро закончатся — до ${THRESH} дней <span class="help-tip" data-tip="${esc(tip)}">?</span><span style="margin-left:auto;font-size:11px;font-weight:400;color:var(--muted)">${runout.length} позиций${!hasPerCity?' · оценка':''}</span></div>
+      <div class="a-table-title"><i class="bi bi-hourglass-split" style="color:#dc2626"></i> Скоро закончатся — до ${THRESH} дней <span class="help-tip" data-tip="${esc(tip)}">?</span></div>
       ${cityBtns}
       <table class="a-table"><thead><tr><th style="min-width:200px">Товар</th><th>Город</th><th style="text-align:right">Остаток</th><th style="text-align:right">Прод./день</th><th style="text-align:right">Осталось</th></tr></thead><tbody id="runout-tbody">${rows}</tbody></table>
     </div>`:
-    `<div class="alert-box" style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534"><i class="bi bi-check-circle-fill" style="font-size:20px;flex-shrink:0"></i><div><div class="alert-title">Дефицита не ожидается</div><div style="font-size:12px;margin-top:2px">Ни один товар не заканчивается в течение ${THRESH} дней при текущей скорости продаж.</div></div></div>`;
+    `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding:0 2px">
+      <div style="font-size:13px;font-weight:600">Период: <b>${runoutDays} дн.</b></div>
+      ${changePeriodBtn}
+    </div>
+    <div class="alert-box" style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534"><i class="bi bi-check-circle-fill" style="font-size:20px;flex-shrink:0"></i><div><div class="alert-title">Дефицита не ожидается</div><div style="font-size:12px;margin-top:2px">Ни один товар не заканчивается в течение ${THRESH} дней при текущей скорости продаж.</div></div></div>`;
+}
+
+async function startRunoutLoad(days){
+  runoutDays=days;
+  runoutLoading=true;
+  runoutDealsLoaded=0;
+  runoutDealsTotal=0;
+  runoutStatus='Загружаем список сделок...';
+  renderRunout();
+  try{
+    const since=new Date();
+    since.setDate(since.getDate()-days);
+    const dateStr=since.toISOString().slice(0,10);
+    const exclCats=(localStorage.getItem(EXCL_CAT_KEY)||'').split(',').map(s=>s.trim()).filter(Boolean);
+    const catFilterObj={};
+    exclCats.forEach((id,i)=>{catFilterObj['filter[!CATEGORY_ID]['+i+']']=id;});
+    const catParamStr=exclCats.map((id,i)=>`&filter%5B!CATEGORY_ID%5D%5B${i}%5D=${encodeURIComponent(id)}`).join('');
+
+    const firstResp=await apiGet(WEBHOOK,'crm.deal.list',{
+      'filter[STAGE_SEMANTIC_ID]':'S','filter[>=CLOSEDATE]':dateStr,
+      ...catFilterObj,
+      'select[0]':'ID','select[1]':'UF_CRM_SHOP',
+      'order[CLOSEDATE]':'DESC',start:0
+    });
+    if(firstResp.error){runoutData=null;runoutLoading=false;renderRunout();return;}
+
+    const total=parseInt(firstResp.total)||0;
+    runoutDealsTotal=total;
+    const deals=[...extractArr(firstResp)];
+    runoutDealsLoaded=deals.length;
+    runoutStatus=`Загружаем сделки: ${fmtNum(runoutDealsLoaded)} из ${fmtNum(total)}...`;
+    renderRunout();
+
+    if(total>50){
+      const starts=[];
+      for(let s=50;s<total;s+=50)starts.push(s);
+      for(let i=0;i<starts.length;i+=49){
+        const chunk=starts.slice(i,i+49);const cmds={};
+        chunk.forEach((s,idx)=>{cmds['r'+idx]='crm.deal.list?filter[STAGE_SEMANTIC_ID]=S&filter[%3E%3DCLOSEDATE]='+dateStr+'&select[0]=ID&select[1]=UF_CRM_SHOP&order[CLOSEDATE]=DESC'+catParamStr+'&start='+s;});
+        const res=await apiBatch(cmds);
+        if(res)Object.values(res).forEach(item=>deals.push(...extractArrItem(item)));
+        runoutDealsLoaded=Math.min(deals.length,total);
+        runoutStatus=`Загружаем сделки: ${fmtNum(runoutDealsLoaded)} из ${fmtNum(total)}...`;
+        renderRunout();
+      }
+    }
+
+    runoutData={};
+    if(!deals.length){runoutLoading=false;renderRunout();return;}
+
+    const GLOBAL_STORE='__ALL__';
+    const dealMap=new Map();
+    deals.forEach(d=>{
+      const storeId=resolveShop(d.UF_CRM_SHOP||d.ufCrmShop)||GLOBAL_STORE;
+      dealMap.set(String(d.ID||d.id),storeId);
+    });
+
+    const productByName=new Map();
+    Object.values(products).filter(p=>p.iblockId==MAIN_IBLOCK_ID).forEach(p=>{productByName.set(p.name.toLowerCase().trim(),p.id);});
+    function resolveProductIdR(pid,pname){
+      const cleanPid=String(pid||'').trim();
+      if(cleanPid&&cleanPid!=='0'&&stock[cleanPid]!==undefined) return cleanPid;
+      if(!pname) return null;
+      const low=pname.toLowerCase().trim();
+      if(productByName.has(low)) return productByName.get(low);
+      return matchProductByWords(low,productByName);
+    }
+
+    const batches=[];
+    for(let i=0;i<deals.length;i+=49){
+      const chunk=deals.slice(i,i+49);const cmds={};
+      chunk.forEach(d=>{const id=d.ID||d.id;cmds['d'+id]='crm.deal.productrows.get?id='+id;});
+      batches.push(cmds);
+    }
+
+    const CONCURRENCY=5;
+    for(let i=0;i<batches.length;i+=CONCURRENCY){
+      const processed=Math.min((i+CONCURRENCY)*49,deals.length);
+      runoutStatus=`Загружаем строки сделок: ${fmtNum(processed)} / ${fmtNum(deals.length)}...`;
+      renderRunout();
+      const group=batches.slice(i,i+CONCURRENCY);
+      const results=await Promise.all(group.map(cmds=>apiBatch(cmds)));
+      results.forEach(res=>{
+        if(!res) return;
+        Object.entries(res).forEach(([key,rawRows])=>{
+          const storeId=dealMap.get(key.slice(1));
+          if(!storeId) return;
+          extractArrItem(rawRows).forEach(row=>{
+            const rawPid=String(row.PRODUCT_ID||row.productId||'');
+            const pname=String(row.PRODUCT_NAME||row.productName||'');
+            const pid=resolveProductIdR(rawPid,pname);
+            const qty=parseFloat(row.QUANTITY||row.quantity)||0;
+            if(!pid||!qty) return;
+            if(!runoutData[pid])runoutData[pid]={};
+            runoutData[pid][storeId]=(runoutData[pid][storeId]||0)+qty;
+          });
+        });
+      });
+    }
+  }catch(e){
+    console.warn('runout load error:',e.message);
+    runoutData=null;
+  }
+  runoutLoading=false;
+  renderRunout();
 }
 function applyFilters(){if(currentTab==='stock') renderStock();}
 
