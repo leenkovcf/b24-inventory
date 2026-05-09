@@ -20,13 +20,14 @@ body{font-family:-apple-system,Arial,sans-serif;font-size:13px;background:var(--
 
 /* SETUP */
 #setup{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
-.setup-card{background:var(--surface);border-radius:12px;padding:36px;box-shadow:0 4px 24px rgba(0,0,0,.1);width:480px;max-width:100%}
+.setup-card{background:var(--surface);border-radius:12px;padding:36px;box-shadow:0 4px 24px rgba(0,0,0,.1);width:460px;max-width:100%}
 .setup-card h2{font-size:20px;color:var(--navy);margin-bottom:6px;display:flex;align-items:center;gap:8px}
 .setup-card p{color:var(--muted);font-size:12px;margin-bottom:20px;line-height:1.6}
 .form-label{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.5px}
 .form-input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;margin-bottom:5px;transition:border .2s}
 .form-input:focus{outline:none;border-color:var(--blue)}
 .form-hint{font-size:11px;color:var(--muted);margin-bottom:18px}
+.profile-notice{background:var(--blue-light);border:1.5px solid #bfdbfe;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px;font-size:12px;color:#1e40af;margin-bottom:18px}
 .role-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
 .role-opt{border:2px solid var(--border);border-radius:8px;padding:10px 12px;cursor:pointer;transition:all .15s;display:flex;align-items:flex-start;gap:8px}
 .role-opt:has(input:checked){border-color:var(--blue);background:var(--blue-light)}
@@ -37,16 +38,26 @@ body{font-family:-apple-system,Arial,sans-serif;font-size:13px;background:var(--
 .btn-submit:hover{background:#1d4ed8}
 .setup-error{color:#dc2626;font-size:12px;margin-top:10px;display:none}
 
-/* CITY PICKER */
-#city-picker{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:none;align-items:center;justify-content:center}
-.cp-card{background:var(--surface);border-radius:12px;padding:28px;width:500px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;gap:14px}
-.cp-card h3{font-size:17px;color:var(--navy)}
-.cp-card p{color:var(--muted);font-size:12px}
-.cp-list{overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;gap:2px;flex:1}
-.cp-item{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:12px}
-.cp-item:hover{background:var(--blue-light)}
-.cp-item input{accent-color:var(--blue)}
-.cp-actions{display:flex;gap:8px}
+/* PROFILE MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:none;align-items:center;justify-content:center}
+.modal-card{background:var(--surface);border-radius:12px;padding:28px;width:540px;max-width:95vw;max-height:85vh;overflow-y:auto}
+.modal-card h3{font-size:17px;color:var(--navy);margin-bottom:18px}
+.form-group{margin-bottom:14px}
+.pm-roles{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.pm-role-opt{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}
+.pm-role-opt input{accent-color:var(--blue)}
+.pm-city-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;max-height:240px;overflow-y:auto;border:1.5px solid var(--border);border-radius:8px;padding:6px;margin-top:6px}
+.pm-city-item{display:flex;align-items:center;gap:6px;padding:5px 7px;border-radius:5px;cursor:pointer;font-size:12px}
+.pm-city-item:hover{background:var(--blue-light)}
+.pm-city-item input{accent-color:var(--blue);width:13px;height:13px}
+.pm-city-header{display:flex;gap:6px;margin-top:6px;margin-bottom:4px}
+.modal-actions{display:flex;gap:8px;margin-top:18px}
+.profile-row{display:flex;align-items:center;padding:10px 15px;gap:10px;border-bottom:1px solid #f0f4f8}
+.profile-row:last-child{border-bottom:none}
+.profile-name{font-weight:600;font-size:13px}
+.profile-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.profile-actions{display:flex;gap:5px;margin-left:auto;flex-shrink:0}
+.profile-note{padding:10px 15px 12px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);line-height:1.5}
 
 /* LOADING */
 #loading{display:none;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:14px}
@@ -71,6 +82,7 @@ body{font-family:-apple-system,Arial,sans-serif;font-size:13px;background:var(--
 #refresh-cd{font-size:11px;color:rgba(255,255,255,.4);white-space:nowrap;min-width:44px;text-align:right}
 .icon-btn{background:rgba(255,255,255,.12);border:none;color:#fff;width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:15px;transition:background .2s;display:flex;align-items:center;justify-content:center}
 .icon-btn:hover{background:rgba(255,255,255,.22)}
+.role-badge{font-size:11px;padding:2px 8px;border-radius:12px;background:rgba(255,255,255,.15);color:rgba(255,255,255,.8)}
 
 /* TAB CONTENT */
 .tab-content{display:none;flex:1;flex-direction:column;overflow:hidden}
@@ -79,6 +91,7 @@ body{font-family:-apple-system,Arial,sans-serif;font-size:13px;background:var(--
 /* FILTER BAR */
 .filter-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:7px 10px;flex-shrink:0}
 .filter-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.filter-spacer{flex:1}
 .search-wrap{position:relative;display:flex;align-items:center}
 .search-icon{position:absolute;left:9px;color:var(--muted);font-size:13px;pointer-events:none}
 .search-box{padding:5px 10px 5px 28px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;width:160px;transition:border .2s}
@@ -105,6 +118,9 @@ body{font-family:-apple-system,Arial,sans-serif;font-size:13px;background:var(--
 .btn{display:flex;align-items:center;gap:5px;padding:5px 11px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap;color:var(--text)}
 .btn:hover{border-color:var(--blue);color:var(--blue)}
 .btn.active{background:var(--blue-light);border-color:var(--blue);color:var(--blue)}
+.btn-sm{padding:4px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;background:var(--surface);transition:all .15s;display:flex;align-items:center;gap:4px;white-space:nowrap}
+.btn-sm:hover{border-color:var(--blue);color:var(--blue)}
+.btn-sm.danger:hover{border-color:#dc2626;color:#dc2626}
 
 /* TABLE */
 .table-wrap{flex:1;overflow:auto}
@@ -147,16 +163,15 @@ tbody tr:hover .hide-btn{display:inline}
 .kpi-sub{font-size:11px;color:var(--muted)}
 .kpi-card.warn .kpi-value{color:#dc2626}
 .kpi-card.ok   .kpi-value{color:#16a34a}
-
 .alert-box{border-radius:10px;padding:12px 16px;display:flex;gap:12px;align-items:flex-start}
 .alert-box.danger{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
 .alert-box.warn{background:#fffbeb;border:1px solid #fde68a;color:#854d0e}
+.alert-box.info{background:var(--blue-light);border:1px solid #bfdbfe;color:#1e40af}
 .alert-title{font-weight:700;font-size:13px;margin-bottom:5px;display:flex;align-items:center;gap:6px}
 .alert-list{font-size:12px;margin:0;padding-left:16px}
 .alert-list li{margin-bottom:2px}
 .alerts-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:700px){.alerts-grid{grid-template-columns:1fr}}
-
 .analytics-main{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
 @media(max-width:900px){.analytics-main{grid-template-columns:1fr}}
 .a-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
@@ -174,14 +189,12 @@ tbody tr:hover .hide-btn{display:inline}
 .abc-A{background:#dcfce7;color:#166534}
 .abc-B{background:#fef9c3;color:#854d0e}
 .abc-C{background:#fee2e2;color:#991b1b}
-
 .charts-row{display:grid;grid-template-columns:2fr 1fr;gap:14px}
 @media(max-width:800px){.charts-row{grid-template-columns:1fr}}
 .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
 .chart-body{padding:12px;position:relative}
-.chart-body.bar-h{height:360px}
+.chart-body.bar-h{height:340px}
 .chart-body.donut-h{height:200px;display:flex;align-items:center;justify-content:center}
-
 .city-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;padding:14px}
 .city-card{border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:3px}
 .city-card.ok{background:var(--green);color:var(--green-text)}
@@ -190,19 +203,25 @@ tbody tr:hover .hide-btn{display:inline}
 .city-card-name{font-size:11px;font-weight:600}
 .city-card-val{font-size:18px;font-weight:700}
 .city-card-sub{font-size:10px;opacity:.75}
+.sales-spinner{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;padding:16px}
+.sales-spinner .spinner{width:20px;height:20px;border-width:3px}
 
 /* ADMIN */
-.admin-wrap{flex:1;overflow:auto;padding:18px}
+.admin-wrap{flex:1;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:18px}
 .admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
 @media(max-width:700px){.admin-grid{grid-template-columns:1fr}}
 .admin-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
-.admin-section-header{padding:12px 15px;background:#f8fafc;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-.admin-section-title{font-weight:700;font-size:14px}
+.admin-section-header{padding:12px 15px;background:#f8fafc;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.admin-section-title{font-weight:700;font-size:14px;display:flex;align-items:center;gap:6px}
 .admin-section-count{font-size:12px;color:var(--muted)}
+.admin-cat-chips{display:flex;gap:5px;padding:7px 14px;flex-wrap:wrap;border-bottom:1px solid var(--border);background:#fdfdfd}
+.admin-cat-chip{padding:3px 10px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface);font-size:11px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.admin-cat-chip:hover{border-color:var(--blue);color:var(--blue)}
+.admin-cat-chip.active{background:var(--navy);border-color:var(--navy);color:#fff}
 .admin-search-wrap{margin:8px 14px;position:relative;display:flex;align-items:center}
 .admin-search{padding:5px 10px 5px 28px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;width:100%;display:block}
 .admin-search:focus{outline:none;border-color:var(--blue)}
-.admin-list{max-height:420px;overflow-y:auto}
+.admin-list{max-height:380px;overflow-y:auto}
 .admin-item{display:flex;align-items:center;padding:8px 15px;gap:10px;border-bottom:1px solid #f0f4f8;transition:background .1s}
 .admin-item:hover{background:#f8fafc}
 .admin-item:last-child{border-bottom:none}
@@ -212,12 +231,7 @@ tbody tr:hover .hide-btn{display:inline}
 .toggle.on{background:#22c55e}.toggle.off{background:#cbd5e1}
 .toggle.on::after{transform:translateX(16px)}
 .admin-actions{display:flex;gap:8px;padding:10px 15px;border-top:1px solid var(--border)}
-.btn-sm{padding:4px 11px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;background:var(--surface);transition:all .15s}
-.btn-sm:hover{border-color:var(--blue);color:var(--blue)}
-.btn-sm.danger:hover{border-color:#dc2626;color:#dc2626}
-
 .no-data{padding:40px;text-align:center;color:var(--muted);font-size:14px}
-.role-badge{font-size:11px;padding:2px 8px;border-radius:12px;background:rgba(255,255,255,.15);color:rgba(255,255,255,.8)}
 </style>
 </head>
 <body>
@@ -226,45 +240,65 @@ tbody tr:hover .hide-btn{display:inline}
 <div id="setup">
   <div class="setup-card">
     <h2><i class="bi bi-boxes"></i> Складская аналитика</h2>
-    <p>Укажите URL входящего вебхука Битрикс24.<br>
-       Он сохранится в браузере и больше не потребуется.</p>
+    <p>Укажите URL входящего вебхука Битрикс24.<br>Он сохранится в браузере и больше не потребуется.</p>
+
+    <!-- shown when role pre-configured via access URL -->
+    <div id="profile-notice" class="profile-notice" style="display:none">
+      <i class="bi bi-person-check-fill"></i>
+      <span>Профиль: <strong id="profile-notice-name"></strong></span>
+    </div>
+
     <label class="form-label">URL вебхука</label>
     <input class="form-input" type="text" id="webhook-input"
       placeholder="https://b24.example.ru/rest/1/xxxxxxxx/">
-    <div class="form-hint">Настройки → Разработчикам → Входящий вебхук &nbsp;·&nbsp; Права: Торговый каталог</div>
-    <label class="form-label">Ваша роль</label>
-    <div class="role-grid">
-      <label class="role-opt">
-        <input type="radio" name="role" value="admin" checked>
-        <div><div class="role-name">Администратор</div><div class="role-desc">Полный доступ ко всем городам и функциям</div></div>
-      </label>
-      <label class="role-opt">
-        <input type="radio" name="role" value="director">
-        <div><div class="role-name">Директор</div><div class="role-desc">Все города, только просмотр аналитики</div></div>
-      </label>
-      <label class="role-opt">
-        <input type="radio" name="role" value="regional">
-        <div><div class="role-name">Рег. руководитель</div><div class="role-desc">Только свои города (выбрать после подключения)</div></div>
-      </label>
-      <label class="role-opt">
-        <input type="radio" name="role" value="operator">
-        <div><div class="role-name">Оператор КЦ</div><div class="role-desc">Только свои города, без управления</div></div>
-      </label>
+    <div class="form-hint">Настройки → Разработчикам → Входящий вебхук &nbsp;·&nbsp; Права: Торговый каталог + CRM</div>
+
+    <!-- role selection — hidden when profile is pre-configured -->
+    <div id="role-section">
+      <label class="form-label">Ваша роль</label>
+      <div class="role-grid">
+        <label class="role-opt"><input type="radio" name="role" value="admin" checked>
+          <div><div class="role-name">Администратор</div><div class="role-desc">Полный доступ, управление профилями</div></div></label>
+        <label class="role-opt"><input type="radio" name="role" value="director">
+          <div><div class="role-name">Директор</div><div class="role-desc">Все города, только просмотр</div></div></label>
+        <label class="role-opt"><input type="radio" name="role" value="regional">
+          <div><div class="role-name">Рег. руководитель</div><div class="role-desc">Только назначенные города</div></div></label>
+        <label class="role-opt"><input type="radio" name="role" value="operator">
+          <div><div class="role-name">Оператор КЦ</div><div class="role-desc">Только назначенные города</div></div></label>
+      </div>
     </div>
+
     <button class="btn-submit" onclick="saveWebhook()">Подключиться</button>
     <div class="setup-error" id="setup-error"></div>
   </div>
 </div>
 
-<!-- ── CITY PICKER ────────────────────────────────────────── -->
-<div id="city-picker">
-  <div class="cp-card">
-    <h3><i class="bi bi-geo-alt"></i> Выберите ваши города</h3>
-    <p>Отметьте города, за которые вы отвечаете. Можно изменить позже в разделе «Управление».</p>
-    <div class="cp-list" id="cp-list"></div>
-    <div class="cp-actions">
-      <button class="btn-submit" style="flex:1" onclick="confirmCities()">Сохранить</button>
-      <button class="btn" onclick="skipCityPicker()" style="flex:0;white-space:nowrap">Выбрать позже</button>
+<!-- ── PROFILE MODAL ──────────────────────────────────────── -->
+<div id="profile-modal" class="modal-overlay">
+  <div class="modal-card">
+    <h3><i class="bi bi-person-badge"></i> Профиль доступа</h3>
+    <div class="form-group">
+      <label class="form-label">Название профиля</label>
+      <input class="form-input" id="pm-name" placeholder="Например: Уральский регион">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Роль</label>
+      <div class="pm-roles">
+        <label class="pm-role-opt"><input type="radio" name="pm-role" value="regional" checked> Региональный руководитель</label>
+        <label class="pm-role-opt"><input type="radio" name="pm-role" value="operator"> Оператор КЦ (только просмотр)</label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Города (не выбрано = все города)</label>
+      <div class="pm-city-header">
+        <button class="dd-hbtn" onclick="pmSelectAll(true)">Выбрать все</button>
+        <button class="dd-hbtn" onclick="pmSelectAll(false)">Снять все</button>
+      </div>
+      <div class="pm-city-grid" id="pm-cities"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-submit" style="width:auto;padding:9px 22px" onclick="saveProfile()">Сохранить</button>
+      <button class="btn" onclick="closeProfileModal()">Отмена</button>
     </div>
   </div>
 </div>
@@ -313,12 +347,10 @@ tbody tr:hover .hide-btn{display:inline}
           <i class="bi bi-geo-alt search-icon"></i>
           <input class="search-box" type="text" id="q-city" placeholder="Поиск по городу" oninput="applyFilters()">
         </div>
-
         <!-- Availability dropdown -->
         <div class="dd-wrap" id="avail-dd">
           <button class="dd-btn" onclick="toggleDD('avail-dd')">
-            <i class="bi bi-funnel"></i>
-            <span id="avail-label">Наличие</span>
+            <i class="bi bi-funnel"></i><span id="avail-label">Наличие</span>
             <i class="bi bi-chevron-down dd-arrow"></i>
           </button>
           <div class="dd-panel" id="avail-dd-panel">
@@ -327,12 +359,10 @@ tbody tr:hover .hide-btn{display:inline}
             <label class="dd-item"><input type="checkbox" id="av-zero"         onchange="onAvailChange()"><i class="bi bi-x-circle" style="color:#ef4444"></i> Нет (0)</label>
           </div>
         </div>
-
         <!-- Category dropdown -->
         <div class="dd-wrap" id="cat-dd">
           <button class="dd-btn" onclick="toggleDD('cat-dd')">
-            <i class="bi bi-tag"></i>
-            <span id="cat-label">Категории</span>
+            <i class="bi bi-tag"></i><span id="cat-label">Категории</span>
             <i class="bi bi-chevron-down dd-arrow"></i>
           </button>
           <div class="dd-panel wide" id="cat-dd-panel">
@@ -343,24 +373,20 @@ tbody tr:hover .hide-btn{display:inline}
             <div class="dd-items" id="cat-dd-items"></div>
           </div>
         </div>
-
         <button class="btn" id="btn-hidden" onclick="toggleShowHidden()">
           <i class="bi bi-eye-slash"></i> Скрытые
         </button>
+        <!-- Excel button pushed to far right -->
+        <div class="filter-spacer"></div>
         <button class="btn" onclick="exportCSV()" title="Экспорт в Excel CSV">
           <i class="bi bi-file-earmark-arrow-down"></i> Excel
         </button>
       </div>
     </div>
-
     <div class="table-wrap" id="table-wrap">
-      <table id="tbl">
-        <thead id="tbl-head"></thead>
-        <tbody id="tbl-body"></tbody>
-      </table>
+      <table id="tbl"><thead id="tbl-head"></thead><tbody id="tbl-body"></tbody></table>
       <div class="no-data" id="no-data" style="display:none">Нет данных по выбранным фильтрам</div>
     </div>
-
     <div class="summary-bar">
       <span class="legend"><span class="dot dot-ok"></span>В наличии (&gt;5)</span>
       <span class="legend"><span class="dot dot-low"></span>Мало (1–5)</span>
@@ -374,7 +400,7 @@ tbody tr:hover .hide-btn{display:inline}
   <!-- TAB: АНАЛИТИКА -->
   <div id="tab-analytics" class="tab-content">
     <div class="analytics-wrap" id="analytics-wrap">
-      <div class="no-data">Перейдите на вкладку «Аналитика» после загрузки данных</div>
+      <div class="no-data">Перейдите на вкладку после загрузки данных</div>
     </div>
   </div>
 
@@ -382,11 +408,13 @@ tbody tr:hover .hide-btn{display:inline}
   <div id="tab-admin" class="tab-content">
     <div class="admin-wrap">
       <div class="admin-grid">
+        <!-- Products with category filter -->
         <div class="admin-section">
           <div class="admin-section-header">
-            <span class="admin-section-title">Товары</span>
+            <span class="admin-section-title"><i class="bi bi-box-seam"></i> Товары</span>
             <span class="admin-section-count" id="prod-count"></span>
           </div>
+          <div class="admin-cat-chips" id="admin-cat-chips"></div>
           <div class="admin-search-wrap">
             <i class="bi bi-search search-icon"></i>
             <input class="admin-search" type="text" id="admin-q-prod" placeholder="Поиск..." oninput="renderAdmin()">
@@ -397,9 +425,10 @@ tbody tr:hover .hide-btn{display:inline}
             <button class="btn-sm danger" onclick="hideAllProducts()">Скрыть все</button>
           </div>
         </div>
+        <!-- Cities -->
         <div class="admin-section">
           <div class="admin-section-header">
-            <span class="admin-section-title">Города / Склады</span>
+            <span class="admin-section-title"><i class="bi bi-geo-alt"></i> Города / Склады</span>
             <span class="admin-section-count" id="city-count"></span>
           </div>
           <div class="admin-search-wrap">
@@ -409,9 +438,20 @@ tbody tr:hover .hide-btn{display:inline}
           <div class="admin-list" id="admin-city-list"></div>
           <div class="admin-actions">
             <button class="btn-sm" onclick="showAllCities()">Показать все</button>
-            <button class="btn-sm" id="btn-my-cities" onclick="showCityPicker()" style="display:none">
-              <i class="bi bi-geo-alt"></i> Мои города
-            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Access profiles (admin/director only) -->
+      <div id="profiles-section" style="display:none">
+        <div class="admin-section">
+          <div class="admin-section-header">
+            <span class="admin-section-title"><i class="bi bi-people"></i> Профили доступа</span>
+            <button class="btn-sm" onclick="openProfileModal(null)"><i class="bi bi-plus-lg"></i> Добавить</button>
+          </div>
+          <div id="profiles-list"></div>
+          <div class="profile-note">
+            Создайте профиль для региональных менеджеров. Назначьте им роль и города — вы получите ссылку, которую можно отправить сотруднику. При переходе по ссылке его роль и города будут настроены автоматически.
           </div>
         </div>
       </div>
@@ -432,43 +472,69 @@ const HIDDEN_CITIES_KEY = 'inv_hidden_cities_v2';
 const WEBHOOK_KEY     = 'inv_webhook_v1';
 const ROLE_KEY        = 'inv_role_v1';
 const MY_CITIES_KEY   = 'inv_my_cities_v1';
+const PROFILES_KEY    = 'inv_profiles_v1';
+const PROFILE_NAME_KEY = 'inv_profile_name_v1';
 const REFRESH_SEC     = 600;
+const SALES_DAYS      = 90;
 
 // ================================================================
 // STATE
 // ================================================================
-let WEBHOOK   = '';
-let stores    = [];
-let products  = {};
-let sections  = {};
-let stock     = {};
-let showHidden    = false;
+let WEBHOOK      = '';
+let stores       = [];
+let products     = {};
+let sections     = {};
+let stock        = {};
+let salesData    = undefined; // undefined=not started, null=failed(no CRM), {}=empty, {pid:{sid:qty}}=ok
+let salesLoading = false;
+let showHidden   = false;
 let selectedAvail = new Set(['ok', 'low']);
 let selectedCats  = new Set();
-let sortStore = null;
-let sortDir   = 0;
-let currentTab = 'stock';
-let userRole  = 'admin';
-let myCities  = new Set();
-let refreshTimer   = null;
+let adminCatFilter = '';
+let sortStore    = null;
+let sortDir      = 0;
+let currentTab   = 'stock';
+let userRole     = 'admin';
+let myCities     = new Set();
+let editingProfileId = null;
+let refreshTimer = null;
 let refreshCountdown = 0;
-let chartBar  = null;
+let chartBar     = null;
 let chartDoughnut = null;
 
 // ================================================================
-// STARTUP
+// STARTUP — read ?access= URL param, then init
 // ================================================================
 (function init() {
+  const params = new URLSearchParams(location.search);
+  const accessCode = params.get('access');
+  if (accessCode) {
+    try {
+      const cfg = JSON.parse(atob(accessCode));
+      if (cfg.role) { userRole = cfg.role; localStorage.setItem(ROLE_KEY, cfg.role); }
+      if (cfg.cities) { myCities = new Set(cfg.cities); localStorage.setItem(MY_CITIES_KEY, JSON.stringify(cfg.cities)); }
+      if (cfg.name)  localStorage.setItem(PROFILE_NAME_KEY, cfg.name);
+      history.replaceState({}, '', location.pathname);
+    } catch(e) {}
+  } else {
+    userRole = localStorage.getItem(ROLE_KEY) || 'admin';
+    myCities = getMyCitiesSet();
+  }
+
+  const profileName = localStorage.getItem(PROFILE_NAME_KEY);
+  if (profileName && userRole !== 'admin') {
+    document.getElementById('profile-notice').style.display = 'flex';
+    document.getElementById('profile-notice-name').textContent = profileName;
+    document.getElementById('role-section').style.display = 'none';
+  }
+
   const saved = localStorage.getItem(WEBHOOK_KEY);
-  userRole = localStorage.getItem(ROLE_KEY) || 'admin';
-  myCities = getMyCitiesSet();
   if (saved) { WEBHOOK = saved; show('loading'); loadAll(); }
   else show('setup');
 })();
 
 async function saveWebhook() {
   const raw  = document.getElementById('webhook-input').value.trim();
-  const role = document.querySelector('input[name="role"]:checked')?.value || 'admin';
   if (!raw) return;
   const url = raw.endsWith('/') ? raw : raw + '/';
   const errEl = document.getElementById('setup-error');
@@ -476,12 +542,14 @@ async function saveWebhook() {
   try {
     const test = await apiGet(url, 'catalog.store.list', { 'select[0]': 'ID', start: 0 });
     if (!test || test.result === undefined) throw new Error('Нет ответа от API');
-    WEBHOOK  = url;
-    userRole = role;
+    WEBHOOK = url;
     localStorage.setItem(WEBHOOK_KEY, url);
-    localStorage.setItem(ROLE_KEY, role);
-    localStorage.removeItem(MY_CITIES_KEY);
-    myCities = new Set();
+    // Save role from form only if profile not pre-configured
+    if (!localStorage.getItem(PROFILE_NAME_KEY)) {
+      const role = document.querySelector('input[name="role"]:checked')?.value || 'admin';
+      userRole = role;
+      localStorage.setItem(ROLE_KEY, role);
+    }
     show('loading');
     loadAll();
   } catch(e) {
@@ -492,7 +560,7 @@ async function saveWebhook() {
 
 function resetSettings() {
   if (!confirm('Сбросить подключение и настройки?')) return;
-  [WEBHOOK_KEY, ROLE_KEY, MY_CITIES_KEY].forEach(k => localStorage.removeItem(k));
+  [WEBHOOK_KEY, ROLE_KEY, MY_CITIES_KEY, PROFILE_NAME_KEY].forEach(k => localStorage.removeItem(k));
   location.reload();
 }
 
@@ -503,7 +571,7 @@ async function loadAll() {
   try {
     setStatus('Загружаем склады...');
     const rawStores = await fetchAll('catalog.store.list', {
-      'select[0]': 'ID', 'select[1]': 'TITLE', 'select[2]': 'ACTIVE', 'filter[ACTIVE]': 'Y'
+      'select[0]':'ID','select[1]':'TITLE','select[2]':'ACTIVE','filter[ACTIVE]':'Y'
     }, 0, 25);
     stores = rawStores
       .filter(s => !SKIP_STORES.includes(s.title))
@@ -511,7 +579,7 @@ async function loadAll() {
 
     setStatus('Загружаем остатки...');
     const rawStock = await fetchAll('catalog.storeproduct.list', {
-      'select[0]': 'PRODUCT_ID', 'select[1]': 'STORE_ID', 'select[2]': 'AMOUNT'
+      'select[0]':'PRODUCT_ID','select[1]':'STORE_ID','select[2]':'AMOUNT'
     }, 25, 70);
 
     stock = {};
@@ -541,9 +609,8 @@ async function loadAll() {
     renderStock();
     startAutoRefresh();
 
-    if ((userRole === 'regional' || userRole === 'operator') && myCities.size === 0) {
-      showCityPicker();
-    }
+    // Load CRM sales data in background
+    loadSalesData();
   } catch(e) {
     setStatus('Ошибка: ' + (e.message || JSON.stringify(e)));
     console.error(e);
@@ -554,10 +621,8 @@ function applyRoleUI() {
   const roleNames = { admin:'Администратор', director:'Директор', regional:'Рег. руководитель', operator:'Оператор КЦ' };
   document.getElementById('role-badge').textContent = roleNames[userRole] || userRole;
   const canManage = userRole === 'admin' || userRole === 'director';
-  const adminTabBtn = document.getElementById('tab-admin-btn');
-  if (!canManage) adminTabBtn.style.display = 'none';
-  const myCitiesBtn = document.getElementById('btn-my-cities');
-  if (userRole === 'regional' || userRole === 'operator') myCitiesBtn.style.display = '';
+  if (!canManage) document.getElementById('tab-admin-btn').style.display = 'none';
+  if (canManage)  document.getElementById('profiles-section').style.display = '';
 }
 
 async function loadProducts(ids) {
@@ -595,7 +660,7 @@ async function loadSections() {
         if (item && item.id && item.name) sections[String(item.id)] = item.name;
       });
     }
-  } catch(e) { /* sections optional */ }
+  } catch(e) {}
 }
 
 function initSelectedCats() {
@@ -606,14 +671,108 @@ function initSelectedCats() {
 }
 
 // ================================================================
+// CRM SALES DATA (background, optional)
+// ================================================================
+async function loadSalesData() {
+  if (salesLoading) return;
+  // Try session cache first
+  const cached = sessionStorage.getItem('inv_sales_v1');
+  if (cached) {
+    try { salesData = JSON.parse(cached); if (currentTab === 'analytics') renderAnalytics(); return; } catch(e) {}
+  }
+  salesLoading = true;
+  if (currentTab === 'analytics') renderAnalytics(); // show loading state
+  try {
+    const since = new Date();
+    since.setDate(since.getDate() - SALES_DAYS);
+    const dateStr = since.toISOString().slice(0, 10);
+
+    // Fetch closed/won deals in last SALES_DAYS
+    const firstResp = await apiGet(WEBHOOK, 'crm.deal.list', {
+      'filter[STAGE_SEMANTIC_ID]': 'S',
+      'filter[>=CLOSEDATE]': dateStr,
+      'select[0]': 'ID', 'select[1]': 'UF_CRM_SHOP',
+      start: 0
+    });
+    if (firstResp.error) { salesData = null; salesLoading = false; if (currentTab === 'analytics') renderAnalytics(); return; }
+
+    const deals = [...extractArr(firstResp)];
+    const total = Math.min(parseInt(firstResp.total) || 0, 500); // cap at 500 deals
+
+    if (total > 50) {
+      const starts = [];
+      for (let s = 50; s < total; s += 50) starts.push(s);
+      for (let i = 0; i < starts.length; i += 49) {
+        const chunk = starts.slice(i, i + 49);
+        const cmds = {};
+        chunk.forEach((s, idx) => { cmds['r' + idx] = 'crm.deal.list?filter[STAGE_SEMANTIC_ID]=S&filter[>=CLOSEDATE]=' + dateStr + '&select[0]=ID&select[1]=UF_CRM_SHOP&start=' + s; });
+        const res = await apiBatch(cmds);
+        if (res) Object.values(res).forEach(item => deals.push(...extractArrItem(item)));
+      }
+    }
+
+    salesData = {};
+    if (!deals.length) { sessionStorage.setItem('inv_sales_v1', JSON.stringify(salesData)); salesLoading = false; if (currentTab === 'analytics') renderAnalytics(); return; }
+
+    // Batch fetch product rows for each deal
+    for (let i = 0; i < deals.length; i += 49) {
+      const chunk = deals.slice(i, i + 49);
+      const cmds = {};
+      chunk.forEach(d => {
+        const id = d.ID || d.id;
+        cmds['d' + id] = 'crm.deal.productrows.get?id=' + id;
+      });
+      const res = await apiBatch(cmds);
+      if (res) {
+        Object.entries(res).forEach(([key, rawRows]) => {
+          const dealId = key.slice(1);
+          const deal = deals.find(d => String(d.ID || d.id) === dealId);
+          if (!deal) return;
+          const shopVal = deal.UF_CRM_SHOP || deal.ufCrmShop;
+          const storeId = resolveShop(shopVal);
+          if (!storeId) return;
+          const rows = extractArrItem(rawRows);
+          rows.forEach(row => {
+            const pid = String(row.PRODUCT_ID || row.productId || '');
+            const qty = parseFloat(row.QUANTITY || row.quantity) || 0;
+            if (!pid || !qty) return;
+            if (!salesData[pid]) salesData[pid] = {};
+            salesData[pid][storeId] = (salesData[pid][storeId] || 0) + qty;
+          });
+        });
+      }
+    }
+    sessionStorage.setItem('inv_sales_v1', JSON.stringify(salesData));
+  } catch(e) {
+    console.warn('CRM sales unavailable:', e.message);
+    salesData = null;
+  }
+  salesLoading = false;
+  if (currentTab === 'analytics') renderAnalytics();
+}
+
+// Match UF_CRM_SHOP field value to a known store ID
+function resolveShop(val) {
+  if (!val) return null;
+  const str = String(val).trim();
+  if (!str || str === '0') return null;
+  // Direct store ID match
+  if (stores.some(s => String(s.id) === str)) return str;
+  // Title/city name match
+  const lower = str.toLowerCase();
+  const s = stores.find(s => s.title.toLowerCase() === lower || cityName(s.title).toLowerCase() === lower);
+  return s ? String(s.id) : null;
+}
+
+// ================================================================
 // PAGINATED FETCH WITH BATCH
 // ================================================================
 async function fetchAll(method, params, p0, p1) {
   const first   = await apiGet(WEBHOOK, method, { ...params, start: 0 });
   const results = [...extractArr(first)];
   const total   = parseInt(first.total) || 0;
-  setProgress(p0 + (p1 - p0) * .15);
-  if (total <= 50) { setProgress(p1); return results; }
+  if (p1 > p0) setProgress(p0 + (p1 - p0) * .15);
+  if (total <= 50) { if (p1 > p0) setProgress(p1); return results; }
   const starts = [];
   for (let s = 50; s < total; s += 50) starts.push(s);
   for (let i = 0; i < starts.length; i += 49) {
@@ -622,7 +781,7 @@ async function fetchAll(method, params, p0, p1) {
     chunk.forEach((s, idx) => { cmds['r' + idx] = method + '?' + buildQS({ ...params, start: s }); });
     const res = await apiBatch(cmds);
     if (res) Object.values(res).forEach(item => results.push(...extractArrItem(item)));
-    setProgress(p0 + (p1 - p0) * Math.min((i + 49) / starts.length, 1));
+    if (p1 > p0) setProgress(p0 + (p1 - p0) * Math.min((i + 49) / starts.length, 1));
   }
   return results;
 }
@@ -630,37 +789,37 @@ async function fetchAll(method, params, p0, p1) {
 // ================================================================
 // RENDER: STOCK TABLE
 // ================================================================
-function renderStock() {
-  const cityQ = document.getElementById('q-city')?.value.toLowerCase().trim() || '';
-  const prodQ = document.getElementById('q-product')?.value.toLowerCase().trim() || '';
+function getVisStores(cityQ) {
   const hiddenCities = getHiddenCitiesSet();
-
-  let visStores = stores
+  let vis = stores
     .filter(s => !hiddenCities.has(String(s.id)))
     .filter(s => !cityQ || cityName(s.title).toLowerCase().includes(cityQ));
+  if ((userRole === 'regional' || userRole === 'operator') && myCities.size > 0)
+    vis = vis.filter(s => myCities.has(String(s.id)));
+  return vis;
+}
 
-  if ((userRole === 'regional' || userRole === 'operator') && myCities.size > 0) {
-    visStores = visStores.filter(s => myCities.has(String(s.id)));
-  }
+function renderStock() {
+  const cityQ = (document.getElementById('q-city')?.value || '').toLowerCase().trim();
+  const prodQ = (document.getElementById('q-product')?.value || '').toLowerCase().trim();
+  const visStores = getVisStores(cityQ);
 
   let visProducts = Object.values(products)
     .filter(p => p.iblockId == MAIN_IBLOCK_ID)
     .filter(p => !prodQ || p.name.toLowerCase().includes(prodQ))
     .filter(p => selectedCats.has(p.sectionId || ''));
 
-  // Availability filter
   if (selectedAvail.size < 3) {
     visProducts = visProducts.filter(p => {
       const amounts = visStores.map(s => stock[p.id]?.[String(s.id)] ?? null).filter(a => a !== null);
       if (!amounts.length) return selectedAvail.has('zero');
       const max = Math.max(...amounts);
-      if (max === 0)          return selectedAvail.has('zero');
-      if (max <= LOW_STOCK)   return selectedAvail.has('low');
+      if (max === 0)        return selectedAvail.has('zero');
+      if (max <= LOW_STOCK) return selectedAvail.has('low');
       return selectedAvail.has('ok');
     });
   }
 
-  // Sort
   if (sortStore && sortDir !== 0) {
     const sid = String(sortStore);
     visProducts = [...visProducts].sort((a, b) => {
@@ -671,15 +830,12 @@ function renderStock() {
     visProducts = visProducts.sort((a, b) => a.name.localeCompare(b.name, 'ru'));
   }
 
-  const tbl    = document.getElementById('tbl');
-  const noData = document.getElementById('no-data');
+  const tbl = document.getElementById('tbl'), noData = document.getElementById('no-data');
   if (!visProducts.length || !visStores.length) {
-    tbl.style.display = 'none'; noData.style.display = 'block';
-    updateStats(0, 0, 0); return;
+    tbl.style.display = 'none'; noData.style.display = 'block'; updateStats(0,0,0); return;
   }
   tbl.style.display = ''; noData.style.display = 'none';
 
-  // THEAD
   let head = '<tr><th class="product-col">Товар</th>';
   visStores.forEach(s => {
     const sid = String(s.id), city = esc(cityName(s.title));
@@ -690,15 +846,13 @@ function renderStock() {
   head += '<th class="total-col">Итого</th></tr>';
   document.getElementById('tbl-head').innerHTML = head;
 
-  // TBODY
-  let zeros = 0, body = '';
   const canHide = userRole === 'admin' || userRole === 'director';
+  let zeros = 0, body = '';
   visProducts.forEach(p => {
     body += `<tr class="${p.hidden ? 'hidden-row' : ''}">`;
     body += `<td class="product-col">${esc(p.name)}`;
     if (canHide) {
-      const icon = p.hidden ? 'bi-eye' : 'bi-eye-slash';
-      body += ` <button class="hide-btn" onclick="toggleHideProd('${p.id}')" title="${p.hidden?'Показать':'Скрыть'}"><i class="bi ${icon}"></i></button>`;
+      body += ` <button class="hide-btn" onclick="toggleHideProd('${p.id}')" title="${p.hidden?'Показать':'Скрыть'}"><i class="bi ${p.hidden?'bi-eye':'bi-eye-slash'}"></i></button>`;
     }
     if (p.hidden) body += ' <span class="hidden-label">скрыт</span>';
     body += '</td>';
@@ -712,7 +866,7 @@ function renderStock() {
         else if (amt <= LOW_STOCK) { cls = 'amount-low'; disp = amt; }
         else                     { cls = 'amount-ok'; disp = amt; }
       }
-      body += `<td class="${cls}" title="${esc(s.title)}: ${amt ?? '—'}">${disp}</td>`;
+      body += `<td class="${cls}" title="${esc(s.title)}: ${amt??'—'}">${disp}</td>`;
     });
     body += `<td class="total-col">${total}</td></tr>`;
   });
@@ -726,218 +880,189 @@ function renderStock() {
 // RENDER: ANALYTICS
 // ================================================================
 function renderAnalytics() {
-  const hiddenCities = getHiddenCitiesSet();
-  let visStores = stores.filter(s => !hiddenCities.has(String(s.id)));
-  if ((userRole === 'regional' || userRole === 'operator') && myCities.size > 0) {
-    visStores = visStores.filter(s => myCities.has(String(s.id)));
-  }
+  const visStores = getVisStores('');
   const prods = Object.values(products).filter(p => p.iblockId == MAIN_IBLOCK_ID && !p.hidden);
+  const wrap  = document.getElementById('analytics-wrap');
 
-  // KPIs
+  // Stock KPIs (always available)
   let totalUnits = 0, okCnt = 0, lowCnt = 0, zeroCnt = 0, totalPos = 0;
-  prods.forEach(p => {
-    visStores.forEach(s => {
-      const amt = stock[p.id]?.[String(s.id)] ?? null;
-      if (amt !== null) {
-        totalPos++;
-        totalUnits += amt;
-        if (amt === 0)          zeroCnt++;
-        else if (amt <= LOW_STOCK) lowCnt++;
-        else                    okCnt++;
-      }
-    });
-  });
+  prods.forEach(p => visStores.forEach(s => {
+    const amt = stock[p.id]?.[String(s.id)] ?? null;
+    if (amt !== null) { totalPos++; totalUnits += amt; if (amt===0) zeroCnt++; else if(amt<=LOW_STOCK) lowCnt++; else okCnt++; }
+  }));
   const coverage = totalPos ? Math.round(okCnt / totalPos * 100) : 0;
 
-  // ABC analysis — by total stock per product
-  const prodTotals = prods.map(p => {
-    let total = 0;
-    visStores.forEach(s => { total += stock[p.id]?.[String(s.id)] || 0; });
-    return { name: p.name, total, sid: p.sectionId };
-  }).sort((a, b) => b.total - a.total);
-  const n = prodTotals.length;
-  const aLim = Math.ceil(n * 0.2), bLim = Math.ceil(n * 0.8);
-  prodTotals.forEach((p, i) => { p.abc = i < aLim ? 'A' : i < bLim ? 'B' : 'C'; });
+  // City stock data (always)
+  const cityStockData = visStores.map(s => {
+    let total = 0, zeros = 0, cnt = 0;
+    prods.forEach(p => { const a = stock[p.id]?.[String(s.id)]??null; if(a!==null){cnt++;total+=a;if(a===0)zeros++;} });
+    const zeroRate = cnt ? zeros/cnt : 0;
+    return { name: cityName(s.title), id: String(s.id), total, zeroRate, cls: zeroRate>.5?'bad':zeroRate>.25?'low':'ok' };
+  }).sort((a,b) => b.total - a.total);
 
   // Warnings
   const zeroEverywhere = prods.filter(p => {
-    const amts = visStores.map(s => stock[p.id]?.[String(s.id)] ?? null).filter(a => a !== null);
-    return amts.length > 0 && amts.every(a => a === 0);
+    const amts = visStores.map(s => stock[p.id]?.[String(s.id)]??null).filter(a=>a!==null);
+    return amts.length>0 && amts.every(a=>a===0);
   });
   const criticalCities = visStores.filter(s => {
     const sid = String(s.id);
-    const amts = prods.map(p => stock[p.id]?.[sid] ?? null).filter(a => a !== null);
-    if (!amts.length) return false;
-    return amts.filter(a => a === 0).length / amts.length > 0.5;
+    const amts = prods.map(p => stock[p.id]?.[sid]??null).filter(a=>a!==null);
+    return amts.length>0 && amts.filter(a=>a===0).length/amts.length>0.5;
   });
-
-  // Problem products (most zeros across cities)
-  const probProds = prods.map(p => {
-    let zeros = 0;
-    visStores.forEach(s => { if ((stock[p.id]?.[String(s.id)] ?? 1) === 0) zeros++; });
-    return { name: p.name, zeros };
-  }).sort((a, b) => b.zeros - a.zeros).slice(0, 10);
-
-  // City totals
-  const cityTotals = visStores.map(s => {
-    let total = 0, zeros = 0, cnt = 0;
-    prods.forEach(p => {
-      const amt = stock[p.id]?.[String(s.id)] ?? null;
-      if (amt !== null) { cnt++; total += amt; if (amt === 0) zeros++; }
-    });
-    const zeroRate = cnt ? zeros / cnt : 0;
-    return { name: cityName(s.title), total, zeroRate,
-             cls: zeroRate > 0.5 ? 'bad' : zeroRate > 0.25 ? 'low' : 'ok' };
-  });
-  const weakCities   = [...cityTotals].sort((a, b) => a.total - b.total).slice(0, 10);
-  const strongCities = [...cityTotals].sort((a, b) => b.total - a.total).slice(0, 10);
-  const cityGridData = [...cityTotals].sort((a, b) => b.total - a.total);
 
   // Destroy old charts
-  if (chartBar)      { chartBar.destroy();      chartBar = null; }
+  if (chartBar)      { chartBar.destroy(); chartBar = null; }
   if (chartDoughnut) { chartDoughnut.destroy(); chartDoughnut = null; }
 
-  // Build top-15 for bar chart
-  const top15 = prodTotals.slice(0, 15);
-
-  // Warnings HTML
+  // ── Warnings HTML ──────────────────────────────────────────
   let warnHTML = '';
   if (zeroEverywhere.length || criticalCities.length) {
     warnHTML = '<div class="alerts-grid">';
     if (zeroEverywhere.length) {
-      const list = zeroEverywhere.slice(0, 8).map(p => `<li>${esc(p.name)}</li>`).join('');
-      const more = zeroEverywhere.length > 8 ? `<li>...ещё ${zeroEverywhere.length - 8}</li>` : '';
-      warnHTML += `<div class="alert-box danger">
-        <div><div class="alert-title"><i class="bi bi-exclamation-triangle-fill"></i> Товары с нулём везде (${zeroEverywhere.length})</div>
-        <ul class="alert-list">${list}${more}</ul></div></div>`;
+      const items = zeroEverywhere.slice(0,8).map(p=>`<li>${esc(p.name)}</li>`).join('');
+      const more  = zeroEverywhere.length>8 ? `<li>...ещё ${zeroEverywhere.length-8}</li>` : '';
+      warnHTML += `<div class="alert-box danger"><div><div class="alert-title"><i class="bi bi-exclamation-triangle-fill"></i>Товары с нулём везде (${zeroEverywhere.length})</div><ul class="alert-list">${items}${more}</ul></div></div>`;
     }
     if (criticalCities.length) {
-      const list = criticalCities.slice(0, 8).map(s => `<li>${esc(cityName(s.title))}</li>`).join('');
-      const more = criticalCities.length > 8 ? `<li>...ещё ${criticalCities.length - 8}</li>` : '';
-      warnHTML += `<div class="alert-box warn">
-        <div><div class="alert-title"><i class="bi bi-geo-alt-fill"></i> Города с критическим дефицитом (${criticalCities.length})</div>
-        <ul class="alert-list">${list}${more}</ul></div></div>`;
+      const items = criticalCities.slice(0,8).map(s=>`<li>${esc(cityName(s.title))}</li>`).join('');
+      const more  = criticalCities.length>8 ? `<li>...ещё ${criticalCities.length-8}</li>` : '';
+      warnHTML += `<div class="alert-box warn"><div><div class="alert-title"><i class="bi bi-geo-alt-fill"></i>Критический дефицит (${criticalCities.length} город.)</div><ul class="alert-list">${items}${more}</ul></div></div>`;
     }
     warnHTML += '</div>';
   }
 
-  // ABC table (top 5 per class)
-  const abcRows = ['A','B','C'].flatMap(cls =>
-    prodTotals.filter(p => p.abc === cls).slice(0, 5).map(p =>
-      `<tr><td class="rank"><span class="abc-badge abc-${cls}">${cls}</span></td>
-       <td class="name">${esc(p.name.length > 30 ? p.name.slice(0,30)+'…' : p.name)}</td>
-       <td class="val">${fmtNum(p.total)}</td></tr>`
-    )
-  ).join('');
+  // ── Sales section ──────────────────────────────────────────
+  let salesHTML = '';
+  if (salesLoading) {
+    salesHTML = `<div class="a-table-wrap"><div class="a-table-title"><i class="bi bi-bar-chart-line"></i> Аналитика продаж</div>
+      <div class="sales-spinner"><div class="spinner"></div> Загружаем данные о продажах из CRM...</div></div>`;
+  } else if (salesData === null) {
+    salesHTML = `<div class="alert-box info"><i class="bi bi-info-circle-fill" style="font-size:20px;flex-shrink:0"></i>
+      <div><div class="alert-title">Данные о продажах недоступны</div>
+      <div style="font-size:12px;margin-top:4px">Добавьте право <strong>CRM</strong> к вашему вебхуку в Битрикс24 для ABC-анализа по продажам и отчёта о скорости продаж.</div></div></div>`;
+  } else if (salesData && Object.keys(salesData).length === 0) {
+    salesHTML = `<div class="alert-box info"><i class="bi bi-info-circle-fill" style="font-size:20px;flex-shrink:0"></i>
+      <div><div class="alert-title">Нет данных о продажах за ${SALES_DAYS} дней</div>
+      <div style="font-size:12px;margin-top:4px">В CRM не найдено закрытых сделок со статусом «Успешно» за последние ${SALES_DAYS} дней. Проверьте, что в сделках заполнено поле UF_CRM_SHOP.</div></div></div>`;
+  } else if (salesData && Object.keys(salesData).length > 0) {
+    // ABC analysis by sales + velocity charts
+    const prodSales = prods.map(p => {
+      let totalSold = 0;
+      if (salesData[p.id]) Object.values(salesData[p.id]).forEach(q => totalSold += q);
+      return { name: p.name, id: p.id, totalSold };
+    }).sort((a,b) => b.totalSold - a.totalSold);
 
-  // City grid HTML
-  const cityGridHTML = cityGridData.map(c =>
+    const n = prodSales.length;
+    const aLim = Math.ceil(n*.2), bLim = Math.ceil(n*.8);
+    prodSales.forEach((p,i) => { p.abc = i<aLim?'A':i<bLim?'B':'C'; });
+
+    // City sales velocity (units/day)
+    const cityVelocity = visStores.map(s => {
+      const sid = String(s.id);
+      let totalSold = 0;
+      Object.values(salesData).forEach(storeMap => { totalSold += storeMap[sid] || 0; });
+      return { name: cityName(s.title), sid, velocity: totalSold / SALES_DAYS, totalSold };
+    }).sort((a,b) => b.velocity - a.velocity);
+
+    const strongCities = cityVelocity.slice(0, 10);
+    const weakCities   = [...cityVelocity].sort((a,b) => a.velocity - b.velocity).slice(0, 10);
+
+    // ABC rows (top 5 per class)
+    const abcRows = ['A','B','C'].flatMap(cls =>
+      prodSales.filter(p=>p.abc===cls).slice(0,5).map(p =>
+        `<tr><td class="rank"><span class="abc-badge abc-${cls}">${cls}</span></td>
+         <td class="name">${esc(p.name.length>30?p.name.slice(0,30)+'…':p.name)}</td>
+         <td class="val">${fmtNum(p.totalSold)} шт.</td></tr>`
+      )
+    ).join('');
+
+    // Top 15 for bar chart
+    const top15 = prodSales.slice(0, 15);
+
+    salesHTML = `
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="a-table-title"><i class="bi bi-bar-chart-horizontal"></i> Топ-15 товаров по продажам (${SALES_DAYS} дн.)</div>
+          <div class="chart-body bar-h"><canvas id="chart-bar"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="a-table-title"><i class="bi bi-pie-chart"></i> Наличие на складе</div>
+          <div class="chart-body donut-h"><canvas id="chart-doughnut"></canvas></div>
+        </div>
+      </div>
+      <div class="analytics-main">
+        <div class="a-table-wrap">
+          <div class="a-table-title"><i class="bi bi-grid-1x2"></i> ABC-анализ по продажам</div>
+          <table class="a-table">
+            <thead><tr><th>Кл.</th><th>Товар</th><th style="text-align:right">Продано</th></tr></thead>
+            <tbody>${abcRows}</tbody>
+          </table>
+        </div>
+        <div class="a-table-wrap">
+          <div class="a-table-title"><i class="bi bi-lightning-charge" style="color:#16a34a"></i> Быстрые города <small style="font-weight:400;color:var(--muted)">(прод./день)</small></div>
+          <table class="a-table"><tbody>${
+            strongCities.map((c,i)=>`<tr><td class="rank">${i+1}</td><td class="name">${esc(c.name)}</td><td class="val good">${c.velocity.toFixed(1)} шт./д</td></tr>`).join('')
+          }</tbody></table>
+        </div>
+        <div class="a-table-wrap">
+          <div class="a-table-title"><i class="bi bi-hourglass-split" style="color:#dc2626"></i> Медленные города <small style="font-weight:400;color:var(--muted)">(прод./день)</small></div>
+          <table class="a-table"><tbody>${
+            weakCities.map((c,i)=>`<tr><td class="rank">${i+1}</td><td class="name">${esc(c.name)}</td><td class="val bad">${c.velocity.toFixed(1)} шт./д</td></tr>`).join('')
+          }</tbody></table>
+        </div>
+      </div>`;
+
+    // Init charts after HTML is set (deferred below)
+    setTimeout(() => {
+      if (typeof Chart === 'undefined') return;
+      const ctxBar = document.getElementById('chart-bar');
+      if (ctxBar && !chartBar) {
+        chartBar = new Chart(ctxBar, {
+          type:'bar',
+          data:{ labels: top15.map(p=>p.name.length>26?p.name.slice(0,26)+'…':p.name),
+            datasets:[{label:'Продано',data:top15.map(p=>p.totalSold),backgroundColor:'#3b82f6',borderRadius:4}] },
+          options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+            plugins:{legend:{display:false}},
+            scales:{ x:{grid:{color:'#f0f4f8'},ticks:{font:{size:10}}}, y:{grid:{display:false},ticks:{font:{size:10}}} } }
+        });
+      }
+      const ctxD = document.getElementById('chart-doughnut');
+      if (ctxD && !chartDoughnut) {
+        chartDoughnut = new Chart(ctxD, {
+          type:'doughnut',
+          data:{ labels:['В наличии','Мало','Нет'],
+            datasets:[{data:[okCnt,lowCnt,zeroCnt],backgroundColor:['#22c55e','#eab308','#ef4444'],borderWidth:2,borderColor:'#fff'}] },
+          options:{ responsive:true, maintainAspectRatio:false,
+            plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:10}}} }
+        });
+      }
+    }, 0);
+  }
+
+  // City color grid
+  const cityGridHTML = cityStockData.map(c =>
     `<div class="city-card ${c.cls}">
-       <div class="city-card-name">${esc(c.name)}</div>
-       <div class="city-card-val">${fmtNum(c.total)}</div>
-       <div class="city-card-sub">${Math.round(c.zeroRate*100)}% нулей</div>
-     </div>`
+      <div class="city-card-name">${esc(c.name)}</div>
+      <div class="city-card-val">${fmtNum(c.total)}</div>
+      <div class="city-card-sub">${Math.round(c.zeroRate*100)}% нулей</div>
+    </div>`
   ).join('');
 
-  const wrap = document.getElementById('analytics-wrap');
   wrap.innerHTML = `
     ${warnHTML}
     <div class="kpi-grid">
-      <div class="kpi-card"><div class="kpi-label">Товаров в каталоге</div>
-        <div class="kpi-value">${prods.length}</div><div class="kpi-sub">видимых позиций</div></div>
-      <div class="kpi-card"><div class="kpi-label">Активных городов</div>
-        <div class="kpi-value">${visStores.length}</div><div class="kpi-sub">складов показано</div></div>
-      <div class="kpi-card ok"><div class="kpi-label">Суммарный остаток</div>
-        <div class="kpi-value">${fmtNum(totalUnits)}</div><div class="kpi-sub">единиц на складах</div></div>
-      <div class="kpi-card ${coverage < 60 ? 'warn' : 'ok'}"><div class="kpi-label">Хорошее покрытие</div>
-        <div class="kpi-value">${coverage}%</div><div class="kpi-sub">позиций (&gt;5 шт.)</div></div>
-      <div class="kpi-card warn"><div class="kpi-label">Нулевых позиций</div>
-        <div class="kpi-value">${fmtNum(zeroCnt)}</div><div class="kpi-sub">товар × город = 0</div></div>
+      <div class="kpi-card"><div class="kpi-label">Товаров в каталоге</div><div class="kpi-value">${prods.length}</div><div class="kpi-sub">видимых позиций</div></div>
+      <div class="kpi-card"><div class="kpi-label">Активных городов</div><div class="kpi-value">${visStores.length}</div><div class="kpi-sub">складов</div></div>
+      <div class="kpi-card ok"><div class="kpi-label">Суммарный остаток</div><div class="kpi-value">${fmtNum(totalUnits)}</div><div class="kpi-sub">единиц</div></div>
+      <div class="kpi-card ${coverage<60?'warn':'ok'}"><div class="kpi-label">Хорошее покрытие</div><div class="kpi-value">${coverage}%</div><div class="kpi-sub">позиций &gt;5 шт.</div></div>
+      <div class="kpi-card warn"><div class="kpi-label">Нулевых позиций</div><div class="kpi-value">${fmtNum(zeroCnt)}</div><div class="kpi-sub">товар × город = 0</div></div>
     </div>
-
-    <div class="charts-row">
-      <div class="chart-card">
-        <div class="a-table-title"><i class="bi bi-bar-chart-horizontal"></i> Топ-15 товаров по остаткам</div>
-        <div class="chart-body bar-h"><canvas id="chart-bar"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="a-table-title"><i class="bi bi-pie-chart"></i> Распределение наличия</div>
-        <div class="chart-body donut-h"><canvas id="chart-doughnut"></canvas></div>
-      </div>
-    </div>
-
-    <div class="analytics-main">
-      <div class="a-table-wrap">
-        <div class="a-table-title"><i class="bi bi-grid-1x2"></i> ABC-анализ <small style="font-weight:400;color:var(--muted)">(по остаткам)</small></div>
-        <table class="a-table">
-          <thead><tr><th>Кл.</th><th>Товар</th><th style="text-align:right">Остаток</th></tr></thead>
-          <tbody>${abcRows}</tbody>
-        </table>
-      </div>
-      <div class="a-table-wrap">
-        <div class="a-table-title"><i class="bi bi-graph-down" style="color:#dc2626"></i> Слабые города</div>
-        <table class="a-table"><tbody>${
-          weakCities.map((c, i) => `<tr>
-            <td class="rank">${i+1}</td>
-            <td class="name">${esc(c.name)}</td>
-            <td class="val bad">${fmtNum(c.total)} шт.</td></tr>`).join('')
-        }</tbody></table>
-      </div>
-      <div class="a-table-wrap">
-        <div class="a-table-title"><i class="bi bi-graph-up" style="color:#16a34a"></i> Сильные города</div>
-        <table class="a-table"><tbody>${
-          strongCities.map((c, i) => `<tr>
-            <td class="rank">${i+1}</td>
-            <td class="name">${esc(c.name)}</td>
-            <td class="val good">${fmtNum(c.total)} шт.</td></tr>`).join('')
-        }</tbody></table>
-      </div>
-    </div>
-
+    ${salesHTML}
     <div class="a-table-wrap">
       <div class="a-table-title"><i class="bi bi-map"></i> Карта городов по складским остаткам</div>
       <div class="city-grid">${cityGridHTML}</div>
-    </div>
-  `;
-
-  // Init Chart.js
-  if (typeof Chart !== 'undefined') {
-    const ctxBar = document.getElementById('chart-bar');
-    if (ctxBar) {
-      chartBar = new Chart(ctxBar, {
-        type: 'bar',
-        data: {
-          labels: top15.map(p => p.name.length > 28 ? p.name.slice(0,28)+'…' : p.name),
-          datasets: [{ label: 'Остаток', data: top15.map(p => p.total),
-            backgroundColor: '#3b82f6', borderRadius: 4 }]
-        },
-        options: {
-          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { grid: { color: '#f0f4f8' }, ticks: { font: { size: 10 } } },
-            y: { grid: { display: false }, ticks: { font: { size: 10 } } }
-          }
-        }
-      });
-    }
-    const ctxD = document.getElementById('chart-doughnut');
-    if (ctxD) {
-      chartDoughnut = new Chart(ctxD, {
-        type: 'doughnut',
-        data: {
-          labels: ['В наличии', 'Мало', 'Нет'],
-          datasets: [{ data: [okCnt, lowCnt, zeroCnt],
-            backgroundColor: ['#22c55e','#eab308','#ef4444'],
-            borderWidth: 2, borderColor: '#fff' }]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 10 } } }
-        }
-      });
-    }
-  }
+    </div>`;
 }
 
 // ================================================================
@@ -948,47 +1073,146 @@ function renderAdmin() {
   const qCity = (document.getElementById('admin-q-city')?.value || '').toLowerCase();
   const hiddenProds  = getHiddenProdsSet();
   const hiddenCities = getHiddenCitiesSet();
+  const canManage    = userRole === 'admin' || userRole === 'director';
 
+  // Category chips for product filter
+  const sectionCounts = {};
+  Object.values(products).filter(p => p.iblockId == MAIN_IBLOCK_ID).forEach(p => {
+    const sid = p.sectionId || '';
+    sectionCounts[sid] = (sectionCounts[sid] || 0) + 1;
+  });
+  let catChipsHtml = `<button class="admin-cat-chip ${!adminCatFilter?'active':''}" onclick="setAdminCat('')">Все</button>`;
+  Object.entries(sectionCounts).filter(([sid])=>sid).sort((a,b)=>b[1]-a[1]).forEach(([sid,cnt]) => {
+    const name = sections[sid] || ('Группа '+sid);
+    catChipsHtml += `<button class="admin-cat-chip ${adminCatFilter===sid?'active':''}" onclick="setAdminCat('${sid}')">${esc(name)} (${cnt})</button>`;
+  });
+  document.getElementById('admin-cat-chips').innerHTML = catChipsHtml;
+
+  // Products list
   const prods = Object.values(products)
     .filter(p => p.iblockId == MAIN_IBLOCK_ID)
+    .filter(p => !adminCatFilter || p.sectionId === adminCatFilter)
     .filter(p => !qProd || p.name.toLowerCase().includes(qProd))
     .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
 
   let cities = stores.filter(s => !qCity || cityName(s.title).toLowerCase().includes(qCity));
-  if ((userRole === 'regional' || userRole === 'operator') && myCities.size > 0) {
+  if ((userRole === 'regional' || userRole === 'operator') && myCities.size > 0)
     cities = cities.filter(s => myCities.has(String(s.id)));
-  }
 
   document.getElementById('prod-count').textContent =
-    `${prods.filter(p => !hiddenProds.has(p.id)).length} / ${prods.length}`;
+    `${prods.filter(p=>!hiddenProds.has(p.id)).length} / ${prods.length}`;
   document.getElementById('city-count').textContent =
-    `${cities.filter(s => !hiddenCities.has(String(s.id))).length} / ${cities.length}`;
-
-  const canManage = userRole === 'admin' || userRole === 'director';
+    `${cities.filter(s=>!hiddenCities.has(String(s.id))).length} / ${cities.length}`;
 
   document.getElementById('admin-prod-list').innerHTML = prods.map(p => {
     const on = !hiddenProds.has(p.id);
-    return `<div class="admin-item">
-      <span class="admin-item-name">${esc(p.name)}</span>
+    return `<div class="admin-item"><span class="admin-item-name">${esc(p.name)}</span>
       ${canManage
         ? `<button class="toggle ${on?'on':'off'}" onclick="toggleProd('${p.id}')" title="${on?'Скрыть':'Показать'}"></button>`
-        : `<span style="font-size:11px;color:var(--muted)">${on?'Виден':'Скрыт'}</span>`}
-    </div>`;
-  }).join('');
+        : `<span style="font-size:11px;color:var(--muted)">${on?'Виден':'Скрыт'}</span>`}</div>`;
+  }).join('') || '<div class="no-data" style="padding:20px">Нет товаров</div>';
 
   document.getElementById('admin-city-list').innerHTML = cities.map(s => {
     const sid = String(s.id), on = !hiddenCities.has(sid);
-    return `<div class="admin-item">
-      <span class="admin-item-name">${esc(cityName(s.title))}</span>
+    return `<div class="admin-item"><span class="admin-item-name">${esc(cityName(s.title))}</span>
       ${canManage
         ? `<button class="toggle ${on?'on':'off'}" onclick="toggleCity('${sid}')" title="${on?'Скрыть':'Показать'}"></button>`
-        : `<span style="font-size:11px;color:var(--muted)">${on?'Виден':'Скрыт'}</span>`}
-    </div>`;
+        : `<span style="font-size:11px;color:var(--muted)">${on?'Виден':'Скрыт'}</span>`}</div>`;
+  }).join('') || '<div class="no-data" style="padding:20px">Нет городов</div>';
+
+  // Profiles
+  if (canManage) renderProfiles();
+}
+
+function setAdminCat(sid) { adminCatFilter = sid; renderAdmin(); }
+
+// ================================================================
+// RENDER: PROFILES
+// ================================================================
+function getProfiles() {
+  try { return JSON.parse(localStorage.getItem(PROFILES_KEY) || '[]'); } catch { return []; }
+}
+function saveProfiles(arr) { localStorage.setItem(PROFILES_KEY, JSON.stringify(arr)); }
+
+function renderProfiles() {
+  const profiles = getProfiles();
+  const roleLabels = { regional:'Рег. руководитель', operator:'Оператор КЦ' };
+  document.getElementById('profiles-list').innerHTML = profiles.length
+    ? profiles.map(p => `
+      <div class="profile-row">
+        <div><div class="profile-name">${esc(p.name)}</div>
+        <div class="profile-meta">${roleLabels[p.role]||p.role} · ${p.cities.length?p.cities.length+' город.':'все города'}</div></div>
+        <div class="profile-actions">
+          <button class="btn-sm" onclick="copyProfileUrl('${p.id}')"><i class="bi bi-link-45deg"></i> Ссылка</button>
+          <button class="btn-sm" onclick="openProfileModal('${p.id}')"><i class="bi bi-pencil"></i></button>
+          <button class="btn-sm danger" onclick="deleteProfile('${p.id}')"><i class="bi bi-trash"></i></button>
+        </div>
+      </div>`).join('')
+    : '<div class="no-data" style="padding:20px;font-size:13px">Профили не созданы. Нажмите «+ Добавить» чтобы настроить доступ для регионального менеджера.</div>';
+}
+
+function openProfileModal(id) {
+  editingProfileId = id;
+  const profiles = getProfiles();
+  const p = id ? profiles.find(pr => pr.id === id) : null;
+  document.getElementById('pm-name').value = p ? p.name : '';
+  const role = p ? p.role : 'regional';
+  document.querySelector(`input[name="pm-role"][value="${role}"]`).checked = true;
+  const savedCities = new Set(p ? p.cities : []);
+  document.getElementById('pm-cities').innerHTML = stores.map(s => {
+    const sid = String(s.id), chk = savedCities.has(sid) ? 'checked' : '';
+    return `<label class="pm-city-item"><input type="checkbox" value="${sid}" ${chk}><span>${esc(cityName(s.title))}</span></label>`;
   }).join('');
+  document.getElementById('profile-modal').style.display = 'flex';
+}
+
+function closeProfileModal() {
+  document.getElementById('profile-modal').style.display = 'none';
+  editingProfileId = null;
+}
+
+function pmSelectAll(state) {
+  document.querySelectorAll('#pm-cities input').forEach(cb => cb.checked = state);
+}
+
+function saveProfile() {
+  const name = document.getElementById('pm-name').value.trim();
+  if (!name) { alert('Введите название профиля'); return; }
+  const role    = document.querySelector('input[name="pm-role"]:checked')?.value || 'regional';
+  const cities  = [...document.querySelectorAll('#pm-cities input:checked')].map(c => c.value);
+  const profiles = getProfiles();
+  if (editingProfileId) {
+    const idx = profiles.findIndex(p => p.id === editingProfileId);
+    if (idx >= 0) profiles[idx] = { ...profiles[idx], name, role, cities };
+  } else {
+    profiles.push({ id: 'p' + Date.now(), name, role, cities });
+  }
+  saveProfiles(profiles);
+  closeProfileModal();
+  renderProfiles();
+}
+
+function deleteProfile(id) {
+  if (!confirm('Удалить этот профиль?')) return;
+  saveProfiles(getProfiles().filter(p => p.id !== id));
+  renderProfiles();
+}
+
+function copyProfileUrl(id) {
+  const p = getProfiles().find(pr => pr.id === id);
+  if (!p) return;
+  const cfg   = JSON.stringify({ role: p.role, cities: p.cities, name: p.name });
+  const code  = btoa(unescape(encodeURIComponent(cfg)));
+  const url   = location.origin + location.pathname + '?access=' + code;
+  navigator.clipboard.writeText(url).then(() => {
+    alert('Ссылка скопирована!\n\nОтправьте её сотруднику. При переходе по ссылке ему останется только ввести URL вебхука.');
+  }).catch(() => {
+    prompt('Скопируйте ссылку:', url);
+  });
 }
 
 // ================================================================
-// RENDER: CATEGORY DROPDOWN
+// RENDER: CATEGORY DROPDOWN (stock tab)
 // ================================================================
 function renderCategoryDropdown() {
   const sectionCounts = {};
@@ -996,23 +1220,16 @@ function renderCategoryDropdown() {
     const sid = p.sectionId || '';
     sectionCounts[sid] = (sectionCounts[sid] || 0) + 1;
   });
-
   let html = '';
   if (sectionCounts['']) {
     const chk = selectedCats.has('') ? 'checked' : '';
-    html += `<label class="dd-item"><input type="checkbox" value="" ${chk}
-      onchange="onCatChange('',this.checked)"><span>Без категории <small>(${sectionCounts['']})</small></span></label>`;
+    html += `<label class="dd-item"><input type="checkbox" value="" ${chk} onchange="onCatChange('',this.checked)"><span>Без категории <small>(${sectionCounts['']})</small></span></label>`;
   }
-  Object.entries(sectionCounts)
-    .filter(([sid]) => sid !== '')
-    .sort((a, b) => b[1] - a[1])
-    .forEach(([sid, cnt]) => {
-      const name = sections[sid] || ('Группа ' + sid);
-      const chk  = selectedCats.has(sid) ? 'checked' : '';
-      html += `<label class="dd-item"><input type="checkbox" value="${sid}" ${chk}
-        onchange="onCatChange('${sid}',this.checked)"><span>${esc(name)} <small>(${cnt})</small></span></label>`;
-    });
-
+  Object.entries(sectionCounts).filter(([sid]) => sid).sort((a,b) => b[1]-a[1]).forEach(([sid, cnt]) => {
+    const name = sections[sid] || ('Группа ' + sid);
+    const chk  = selectedCats.has(sid) ? 'checked' : '';
+    html += `<label class="dd-item"><input type="checkbox" value="${sid}" ${chk} onchange="onCatChange('${sid}',this.checked)"><span>${esc(name)} <small>(${cnt})</small></span></label>`;
+  });
   document.getElementById('cat-dd-items').innerHTML = html;
   updateCatLabel();
 }
@@ -1041,22 +1258,17 @@ function updateCountdown() {
 async function silentReload() {
   try {
     stores = []; products = {}; sections = {}; stock = {};
-    const rawStores = await fetchAll('catalog.store.list', {
-      'select[0]':'ID','select[1]':'TITLE','select[2]':'ACTIVE','filter[ACTIVE]':'Y'
-    }, 0, 0);
-    stores = rawStores.filter(s => !SKIP_STORES.includes(s.title))
-      .sort((a, b) => cityName(a.title).localeCompare(cityName(b.title), 'ru'));
-    const rawStock = await fetchAll('catalog.storeproduct.list', {
-      'select[0]':'PRODUCT_ID','select[1]':'STORE_ID','select[2]':'AMOUNT'
-    }, 0, 0);
+    const rawStores = await fetchAll('catalog.store.list',
+      {'select[0]':'ID','select[1]':'TITLE','select[2]':'ACTIVE','filter[ACTIVE]':'Y'}, 0, 0);
+    stores = rawStores.filter(s=>!SKIP_STORES.includes(s.title))
+      .sort((a,b)=>cityName(a.title).localeCompare(cityName(b.title),'ru'));
+    const rawStock = await fetchAll('catalog.storeproduct.list',
+      {'select[0]':'PRODUCT_ID','select[1]':'STORE_ID','select[2]':'AMOUNT'}, 0, 0);
     const productIds = new Set();
     rawStock.forEach(r => {
-      const pid = String(r.productId !== undefined ? r.productId : r.PRODUCT_ID);
-      const sid = String(r.storeId   !== undefined ? r.storeId   : r.STORE_ID);
-      const amt = parseFloat(r.amount !== undefined ? r.amount   : r.AMOUNT) || 0;
-      if (!stock[pid]) stock[pid] = {};
-      stock[pid][sid] = amt;
-      productIds.add(pid);
+      const pid=String(r.productId??r.PRODUCT_ID), sid=String(r.storeId??r.STORE_ID), amt=parseFloat(r.amount??r.AMOUNT)||0;
+      if(!stock[pid]) stock[pid]={};
+      stock[pid][sid]=amt; productIds.add(pid);
     });
     await loadProducts([...productIds]);
     await loadSections();
@@ -1069,84 +1281,31 @@ async function silentReload() {
 }
 
 // ================================================================
-// CITY PICKER
-// ================================================================
-function showCityPicker() {
-  const saved = getMyCitiesSet();
-  document.getElementById('cp-list').innerHTML = stores.map(s => {
-    const sid = String(s.id), chk = saved.has(sid) ? 'checked' : '';
-    return `<label class="cp-item">
-      <input type="checkbox" value="${sid}" ${chk}>
-      <span>${esc(cityName(s.title))}</span>
-    </label>`;
-  }).join('');
-  document.getElementById('city-picker').style.display = 'flex';
-}
-
-function confirmCities() {
-  const checked = document.querySelectorAll('#cp-list input:checked');
-  myCities = new Set([...checked].map(c => c.value));
-  if (myCities.size === 0) { alert('Выберите хотя бы один город'); return; }
-  localStorage.setItem(MY_CITIES_KEY, JSON.stringify([...myCities]));
-  document.getElementById('city-picker').style.display = 'none';
-  renderStock();
-  if (currentTab === 'analytics') renderAnalytics();
-}
-
-function skipCityPicker() {
-  document.getElementById('city-picker').style.display = 'none';
-}
-
-// ================================================================
 // CSV EXPORT
 // ================================================================
 function exportCSV() {
-  const hiddenCities = getHiddenCitiesSet();
-  const cityQ = (document.getElementById('q-city')?.value || '').toLowerCase().trim();
-  const prodQ = (document.getElementById('q-product')?.value || '').toLowerCase().trim();
-
-  let visStores = stores
-    .filter(s => !hiddenCities.has(String(s.id)))
-    .filter(s => !cityQ || cityName(s.title).toLowerCase().includes(cityQ));
-  if ((userRole === 'regional' || userRole === 'operator') && myCities.size > 0) {
-    visStores = visStores.filter(s => myCities.has(String(s.id)));
-  }
-
+  const visStores  = getVisStores((document.getElementById('q-city')?.value||'').toLowerCase().trim());
+  const prodQ = (document.getElementById('q-product')?.value||'').toLowerCase().trim();
   const visProducts = Object.values(products)
-    .filter(p => p.iblockId == MAIN_IBLOCK_ID && !p.hidden)
+    .filter(p => p.iblockId==MAIN_IBLOCK_ID && !p.hidden)
     .filter(p => !prodQ || p.name.toLowerCase().includes(prodQ))
-    .filter(p => selectedCats.has(p.sectionId || ''))
-    .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+    .filter(p => selectedCats.has(p.sectionId||''))
+    .sort((a,b) => a.name.localeCompare(b.name,'ru'));
 
   let csv = '﻿';
-  const headers = ['Товар', 'Категория', ...visStores.map(s => cityName(s.title)), 'Итого'];
-  csv += headers.join(';') + '\r\n';
-
+  csv += ['Товар','Категория',...visStores.map(s=>cityName(s.title)),'Итого'].join(';') + '\r\n';
   visProducts.forEach(p => {
     const cat = sections[p.sectionId] || '';
     let total = 0;
-    const cells = visStores.map(s => {
-      const amt = stock[p.id]?.[String(s.id)];
-      if (amt !== undefined) total += amt;
-      return amt !== undefined ? amt : '';
-    });
+    const cells = visStores.map(s => { const a=stock[p.id]?.[String(s.id)]; if(a!==undefined)total+=a; return a!==undefined?a:''; });
     csv += [csvEsc(p.name), csvEsc(cat), ...cells, total].join(';') + '\r\n';
   });
-
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   const url  = URL.createObjectURL(blob);
-  const a    = Object.assign(document.createElement('a'), {
-    href: url, download: 'склад_' + new Date().toISOString().slice(0,10) + '.csv'
-  });
-  a.click();
+  Object.assign(document.createElement('a'),{href:url,download:'склад_'+new Date().toISOString().slice(0,10)+'.csv'}).click();
   URL.revokeObjectURL(url);
 }
-
-function csvEsc(s) {
-  s = String(s || '');
-  return (s.includes(';') || s.includes('"') || s.includes('\n'))
-    ? '"' + s.replace(/"/g,'""') + '"' : s;
-}
+function csvEsc(s) { s=String(s||''); return (s.includes(';')||s.includes('"')||s.includes('\n'))?'"'+s.replace(/"/g,'""')+'"':s; }
 
 // ================================================================
 // ACTIONS
@@ -1190,9 +1349,9 @@ function selectAllCats(state) {
 
 function updateAvailLabel() {
   const sel = ['ok','low','zero'].filter(a => selectedAvail.has(a));
-  const names = { ok:'Есть', low:'Мало', zero:'Нет' };
+  const names = {ok:'Есть',low:'Мало',zero:'Нет'};
   const el = document.getElementById('avail-label');
-  el.textContent = sel.length === 3 ? 'Наличие' : sel.length === 0 ? 'Нет фильтра' : sel.map(a => names[a]).join(', ');
+  el.textContent = sel.length===3?'Наличие':sel.length===0?'Нет фильтра':sel.map(a=>names[a]).join(', ');
 }
 
 function updateCatLabel() {
@@ -1200,7 +1359,7 @@ function updateCatLabel() {
   const el = document.getElementById('cat-label');
   if (!el) return;
   if (selectedCats.size >= total) el.textContent = 'Категории';
-  else if (selectedCats.size === 0) el.textContent = 'Нет (0)';
+  else if (!selectedCats.size) el.textContent = 'Категории (0)';
   else el.textContent = `Категории (${selectedCats.size})`;
 }
 
@@ -1210,17 +1369,14 @@ function toggleDD(id) {
   document.querySelectorAll('.dd-wrap.open').forEach(w => w.classList.remove('open'));
   if (!isOpen) wrap.classList.add('open');
 }
-
 document.addEventListener('click', e => {
-  if (!e.target.closest('.dd-wrap')) {
-    document.querySelectorAll('.dd-wrap.open').forEach(w => w.classList.remove('open'));
-  }
+  if (!e.target.closest('.dd-wrap')) document.querySelectorAll('.dd-wrap.open').forEach(w=>w.classList.remove('open'));
 });
 
 function sortByCity(storeId) {
   if (sortStore === storeId) {
-    sortDir = sortDir === 1 ? -1 : (sortDir === -1 ? 0 : 1);
-    if (sortDir === 0) sortStore = null;
+    sortDir = sortDir===1?-1:(sortDir===-1?0:1);
+    if (sortDir===0) sortStore = null;
   } else { sortStore = storeId; sortDir = 1; }
   renderStock();
 }
@@ -1261,14 +1417,12 @@ function showAllProducts() {
   localStorage.removeItem(HIDDEN_PRODS_KEY);
   renderAdmin(); renderStock();
 }
-
 function hideAllProducts() {
   const h = new Set();
-  Object.values(products).filter(p => p.iblockId == MAIN_IBLOCK_ID).forEach(p => { p.hidden = true; h.add(p.id); });
+  Object.values(products).filter(p=>p.iblockId==MAIN_IBLOCK_ID).forEach(p=>{p.hidden=true;h.add(p.id);});
   localStorage.setItem(HIDDEN_PRODS_KEY, JSON.stringify([...h]));
   renderAdmin(); renderStock();
 }
-
 function showAllCities() {
   localStorage.removeItem(HIDDEN_CITIES_KEY);
   renderAdmin(); renderStock();
@@ -1276,7 +1430,9 @@ function showAllCities() {
 
 function reloadData() {
   if (refreshTimer) clearInterval(refreshTimer);
-  stores = []; products = {}; sections = {}; stock = {};
+  sessionStorage.removeItem('inv_sales_v1');
+  salesData = undefined; salesLoading = false;
+  stores=[]; products={}; sections={}; stock={};
   show('loading');
   document.getElementById('progress').style.width = '0';
   loadAll();
@@ -1295,7 +1451,7 @@ async function apiGet(base, method, params) {
 async function apiBatch(cmds) {
   const body = new URLSearchParams();
   Object.keys(cmds).forEach(k => body.append('cmd[' + k + ']', cmds[k]));
-  const r = await fetch(WEBHOOK + 'batch', { method: 'POST', body });
+  const r = await fetch(WEBHOOK + 'batch', { method:'POST', body });
   if (!r.ok) throw new Error('batch HTTP ' + r.status);
   const j = await r.json();
   return j.result?.result ?? j.result ?? null;
@@ -1304,21 +1460,17 @@ async function apiBatch(cmds) {
 function buildQS(obj) {
   const parts = [];
   function enc(key, val) {
-    if (val === null || val === undefined) return;
-    if (typeof val === 'object' && !Array.isArray(val)) {
-      Object.keys(val).forEach(k => enc(key+'['+k+']', val[k]));
-    } else if (Array.isArray(val)) {
-      val.forEach((v, i) => enc(key+'['+i+']', v));
-    } else {
-      parts.push(encodeURIComponent(key)+'='+encodeURIComponent(val));
-    }
+    if (val===null||val===undefined) return;
+    if (typeof val==='object'&&!Array.isArray(val)) { Object.keys(val).forEach(k=>enc(key+'['+k+']',val[k])); }
+    else if (Array.isArray(val)) { val.forEach((v,i)=>enc(key+'['+i+']',v)); }
+    else { parts.push(encodeURIComponent(key)+'='+encodeURIComponent(val)); }
   }
-  Object.keys(obj||{}).forEach(k => enc(k, obj[k]));
+  Object.keys(obj||{}).forEach(k=>enc(k,obj[k]));
   return parts.join('&');
 }
 
 // ================================================================
-// RESULT EXTRACTORS (Bitrix24 26.x wraps results)
+// RESULT EXTRACTORS (Bitrix24 26.x)
 // ================================================================
 function extractArr(apiResp) {
   if (!apiResp) return [];
@@ -1338,7 +1490,7 @@ function extractItem(raw) {
   if (!raw) return null;
   if (raw.id !== undefined) return raw;
   for (const v of Object.values(raw)) {
-    if (v && typeof v === 'object' && !Array.isArray(v) && v.id !== undefined) return v;
+    if (v && typeof v==='object' && !Array.isArray(v) && v.id!==undefined) return v;
   }
   return raw;
 }
@@ -1346,23 +1498,23 @@ function extractItem(raw) {
 // ================================================================
 // HELPERS
 // ================================================================
-function getHiddenProdsSet()  { try { return new Set(JSON.parse(localStorage.getItem(HIDDEN_PRODS_KEY)||'[]')); } catch { return new Set(); } }
-function getHiddenCitiesSet() { try { return new Set(JSON.parse(localStorage.getItem(HIDDEN_CITIES_KEY)||'[]')); } catch { return new Set(); } }
-function getMyCitiesSet()     { try { return new Set(JSON.parse(localStorage.getItem(MY_CITIES_KEY)||'[]')); } catch { return new Set(); } }
+function getHiddenProdsSet()  { try{return new Set(JSON.parse(localStorage.getItem(HIDDEN_PRODS_KEY)||'[]'));}catch{return new Set();} }
+function getHiddenCitiesSet() { try{return new Set(JSON.parse(localStorage.getItem(HIDDEN_CITIES_KEY)||'[]'));}catch{return new Set();} }
+function getMyCitiesSet()     { try{return new Set(JSON.parse(localStorage.getItem(MY_CITIES_KEY)||'[]'));}catch{return new Set();} }
 function cityName(t) { return t.replace(/^Магазин (в|во) /,'').replace(/^Магазин /,''); }
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmtNum(n) { return Number(n).toLocaleString('ru-RU'); }
 function show(id) {
   ['setup','loading','app'].forEach(s => {
-    document.getElementById(s).style.display = s === id ? 'flex' : 'none';
+    document.getElementById(s).style.display = s===id?'flex':'none';
   });
 }
 function setStatus(m)   { document.getElementById('load-status').textContent = m; }
-function setProgress(p) { document.getElementById('progress').style.width = Math.round(p) + '%'; }
+function setProgress(p) { document.getElementById('progress').style.width = Math.round(p)+'%'; }
 function updateStats(pr, st, z) {
-  document.getElementById('stat-products').textContent = pr ? 'Товаров: ' + pr : '';
-  document.getElementById('stat-stores').textContent   = st ? 'Городов: ' + st : '';
-  document.getElementById('stat-zeros').textContent    = z  ? 'Нулевых: ' + z  : '';
+  document.getElementById('stat-products').textContent = pr?'Товаров: '+pr:'';
+  document.getElementById('stat-stores').textContent   = st?'Городов: '+st:'';
+  document.getElementById('stat-zeros').textContent    = z ?'Нулевых: '+z:'';
 }
 </script>
 </body>
