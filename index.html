@@ -769,6 +769,7 @@ async function loadSalesData() {
     });
     if (firstResp.error) { salesData=null; salesLoading=false; if(currentTab==='analytics')renderAnalytics(); return; }
 
+    // Load ALL deals (no UF_CRM_SHOP filter - it may be empty)
     const deals = [...extractArr(firstResp)];
     const total = parseInt(firstResp.total)||0;
     if (total>50) {
@@ -776,7 +777,7 @@ async function loadSalesData() {
       for(let s=50;s<total;s+=50) starts.push(s);
       for(let i=0;i<starts.length;i+=49){
         const chunk=starts.slice(i,i+49); const cmds={};
-        chunk.forEach((s,idx)=>{cmds['r'+idx]='crm.deal.list?filter[STAGE_SEMANTIC_ID]=S&filter[>=CLOSEDATE]='+dateStr+'&filter[!UF_CRM_SHOP]=&select[0]=ID&select[1]=UF_CRM_SHOP&start='+s;});
+        chunk.forEach((s,idx)=>{cmds['r'+idx]='crm.deal.list?filter[STAGE_SEMANTIC_ID]=S&filter[>=CLOSEDATE]='+dateStr+'&select[0]=ID&select[1]=UF_CRM_SHOP&start='+s;});
         const res=await apiBatch(cmds);
         if(res) Object.values(res).forEach(item=>deals.push(...extractArrItem(item)));
       }
@@ -785,28 +786,49 @@ async function loadSalesData() {
     salesData = {};
     if (!deals.length) { sessionStorage.setItem('inv_sales_v3',JSON.stringify(salesData)); salesLoading=false; if(currentTab==='analytics')renderAnalytics(); return; }
 
-    // Pre-resolve stores, skip deals with no matching store
+    // '__ALL__' = company-wide bucket when UF_CRM_SHOP is not filled
+    const GLOBAL_STORE='__ALL__';
     const dealMap = new Map();
+    let dealsWithStore=0;
     deals.forEach(d => {
-      const storeId = resolveShop(d.UF_CRM_SHOP||d.ufCrmShop);
-      if (storeId) dealMap.set(String(d.ID||d.id), storeId);
+      const storeId = resolveShop(d.UF_CRM_SHOP||d.ufCrmShop) || GLOBAL_STORE;
+      if(storeId!==GLOBAL_STORE) dealsWithStore++;
+      dealMap.set(String(d.ID||d.id), storeId);
     });
-    const validDeals = deals.filter(d => dealMap.has(String(d.ID||d.id)));
-    salesMatchRate = validDeals.length && deals.length ? Math.round(validDeals.length/deals.length*100) : 0;
-    salesDealsTotal = deals.length; salesDealsMatched = validDeals.length;
+    salesMatchRate = deals.length ? Math.round(dealsWithStore/deals.length*100) : 0;
+    salesDealsTotal = deals.length; salesDealsMatched = dealsWithStore;
 
-    // Build batches for product rows
+    // Build product name→id lookup for fallback when PRODUCT_ID=0
+    const productByName = new Map();
+    Object.values(products).filter(p=>p.iblockId==MAIN_IBLOCK_ID).forEach(p=>{
+      productByName.set(p.name.toLowerCase().trim(), p.id);
+    });
+    function resolveProductId(pid, pname) {
+      const cleanPid=String(pid||'').trim();
+      if(cleanPid&&cleanPid!=='0'&&stock[cleanPid]!==undefined) return cleanPid;
+      if(!pname) return null;
+      const low=pname.toLowerCase().trim();
+      if(productByName.has(low)) return productByName.get(low);
+      // Prefix match: first 20 chars
+      const pre=low.slice(0,20);
+      for(const [name,id] of productByName){
+        if(name.startsWith(pre)||low.startsWith(name.slice(0,20))) return id;
+      }
+      return null;
+    }
+
+    // Build batches for product rows (all deals)
     const batches=[];
-    for(let i=0;i<validDeals.length;i+=49){
-      const chunk=validDeals.slice(i,i+49); const cmds={};
+    for(let i=0;i<deals.length;i+=49){
+      const chunk=deals.slice(i,i+49); const cmds={};
       chunk.forEach(d=>{const id=d.ID||d.id; cmds['d'+id]='crm.deal.productrows.get?id='+id;});
       batches.push(cmds);
     }
 
-    // Process batches in parallel groups of 5 (5x faster than sequential)
+    // Process batches in parallel groups of 5
     const CONCURRENCY=5;
     for(let i=0;i<batches.length;i+=CONCURRENCY){
-      salesStatus=`Загружаем строки сделок: ${Math.min(i*49,validDeals.length)} / ${validDeals.length}...`;
+      salesStatus=`Загружаем строки сделок: ${Math.min(i*49,deals.length)} / ${deals.length}...`;
       if(currentTab==='analytics') {
         const el=document.querySelector('.sales-spinner-text');
         if(el) el.textContent=salesStatus;
@@ -819,7 +841,9 @@ async function loadSalesData() {
           const storeId=dealMap.get(key.slice(1));
           if(!storeId) return;
           extractArrItem(rawRows).forEach(row=>{
-            const pid=String(row.PRODUCT_ID||row.productId||'');
+            const rawPid=String(row.PRODUCT_ID||row.productId||'');
+            const pname=String(row.PRODUCT_NAME||row.productName||'');
+            const pid=resolveProductId(rawPid,pname);
             const qty=parseFloat(row.QUANTITY||row.quantity)||0;
             if(!pid||!qty) return;
             if(!salesData[pid]) salesData[pid]={};
@@ -1018,7 +1042,6 @@ function renderAnalytics(){
   // Sales section
   let salesHTML='';
   const TIP_ABC=`ABC-анализ по продажам за ${SALES_DAYS} дней:\n\nA (зелёный) — топ-20% товаров по объёму продаж.\nЭто ваши ключевые позиции — следите за остатками!\n\nB (жёлтый) — следующие 60% товаров.\nСтабильный средний спрос.\n\nC (красный) — нижние 20% товаров.\nМинимальные продажи — кандидаты на вывод\nили стимуляцию спроса.`;
-  const TIP_VEL=`Скорость продаж — среднее кол-во товаров\nпродаваемых в день за последние ${SALES_DAYS} дней.\n\nБыстрые города — наибольший поток заказов.\nМедленные — где товар расходуется медленнее.`;
 
   if(salesLoading){
     salesHTML=`<div class="a-table-wrap"><div class="a-table-title"><i class="bi bi-bar-chart-line"></i> Аналитика продаж</div><div class="sales-spinner"><div class="spinner"></div> <span class="sales-spinner-text">${salesStatus||'Загружаем данные о продажах из CRM...'}</span></div></div>`;
@@ -1027,6 +1050,10 @@ function renderAnalytics(){
   } else if(salesData&&Object.keys(salesData).length===0){
     salesHTML=`<div class="alert-box info"><i class="bi bi-info-circle-fill" style="font-size:20px;flex-shrink:0"></i><div><div class="alert-title">Нет данных о продажах за ${SALES_DAYS} дней</div><div style="font-size:12px;margin-top:4px">Закрытые сделки со статусом «Успешно» не найдены за последние ${SALES_DAYS} дней. Проверьте заполнение поля UF_CRM_SHOP в сделках.</div></div></div>`;
   } else if(salesData&&Object.keys(salesData).length>0){
+    // Detect data mode: per-store vs company-wide (__ALL__)
+    const hasPerCity = salesMatchRate > 20; // >20% deals have store field filled
+    const GLOBAL_STORE='__ALL__';
+
     const prodSales=prods.map(p=>{
       let totalSold=0;
       if(salesData[p.id]) Object.values(salesData[p.id]).forEach(q=>totalSold+=q);
@@ -1036,24 +1063,8 @@ function renderAnalytics(){
     const n=prodSales.length, aLim=Math.ceil(n*.2), bLim=Math.ceil(n*.8);
     prodSales.forEach((p,i)=>{p.abc=i<aLim?'A':i<bLim?'B':'C';});
 
-    // Group stores by city (normalized first word to handle multiple locations per city)
-    const cityGroups={};
-    visStores.forEach(s=>{
-      const cn=cityName(s.title);
-      const key=normCity(cn.split(' ')[0]);
-      if(!cityGroups[key]){cityGroups[key]={name:cn,totalSold:0};}
-      else if(cn.length<cityGroups[key].name.length){cityGroups[key].name=cn;}
-      const sid=String(s.id);
-      Object.values(salesData).forEach(sm=>{cityGroups[key].totalSold+=sm[sid]||0;});
-    });
-    const cityVelocity=Object.values(cityGroups)
-      .map(c=>({name:c.name,velocity:c.totalSold/SALES_DAYS,totalSold:c.totalSold}))
-      .sort((a,b)=>b.velocity-a.velocity);
-
     const fmtVel=v=>v<0.1?'< 0.1':v.toFixed(1);
-    const strongCities=cityVelocity.filter(c=>c.velocity>0).slice(0,10);
-    const weakCities=[...cityVelocity].filter(c=>c.velocity>0).sort((a,b)=>a.velocity-b.velocity).slice(0,10);
-    const top15=prodSales.slice(0,15);
+    const top15=prodSales.filter(p=>p.totalSold>0).slice(0,15);
 
     const abcRows=['A','B','C'].flatMap(cls=>
       prodSales.filter(p=>p.abc===cls).slice(0,5).map(p=>
@@ -1063,20 +1074,67 @@ function renderAnalytics(){
       )
     ).join('');
 
-    // "Soon running out" section
+    // City velocity (only when per-city data available)
+    let citySection='';
+    if(hasPerCity){
+      const cityGroups={};
+      visStores.forEach(s=>{
+        const cn=cityName(s.title);
+        const key=normCity(cn.split(' ')[0]);
+        if(!cityGroups[key]){cityGroups[key]={name:cn,totalSold:0};}
+        else if(cn.length<cityGroups[key].name.length){cityGroups[key].name=cn;}
+        const sid=String(s.id);
+        Object.values(salesData).forEach(sm=>{cityGroups[key].totalSold+=sm[sid]||0;});
+      });
+      const cityVel=Object.values(cityGroups).map(c=>({name:c.name,velocity:c.totalSold/SALES_DAYS,totalSold:c.totalSold})).sort((a,b)=>b.velocity-a.velocity);
+      const strongCities=cityVel.filter(c=>c.velocity>0).slice(0,10);
+      const weakCities=[...cityVel].filter(c=>c.velocity>0).sort((a,b)=>a.velocity-b.velocity).slice(0,10);
+      const TIP_VEL=`Скорость продаж — среднее кол-во товаров,\nпродаваемых в день за последние ${SALES_DAYS} дней.\n\nГруппирует несколько складов одного города вместе.`;
+      citySection=`
+        <div class="a-table-wrap">
+          <div class="a-table-title"><i class="bi bi-lightning-charge" style="color:#16a34a"></i> Быстрые города <span class="help-tip" data-tip="${TIP_VEL}">?</span></div>
+          <table class="a-table"><tbody>${strongCities.map((c,i)=>`<tr><td class="rank">${i+1}</td><td class="name">${esc(c.name)}</td><td class="val good">${fmtVel(c.velocity)} шт./д</td></tr>`).join('')}</tbody></table>
+        </div>
+        <div class="a-table-wrap">
+          <div class="a-table-title"><i class="bi bi-hourglass" style="color:#dc2626"></i> Медленные города <span class="help-tip" data-tip="${TIP_VEL}">?</span></div>
+          <table class="a-table"><tbody>${weakCities.map((c,i)=>`<tr><td class="rank">${i+1}</td><td class="name">${esc(c.name)}</td><td class="val bad">${fmtVel(c.velocity)} шт./д</td></tr>`).join('')}</tbody></table>
+        </div>`;
+    }
+
+    // "Soon running out": per-city if available, else company-wide estimate
     const THRESH=RUNOUT_DAYS;
     const runout=[];
-    prods.forEach(p=>{
-      visStores.forEach(s=>{
-        const sid=String(s.id);
-        const cur=stock[p.id]?.[sid]??null;
-        if(cur===null||cur===0) return;
-        const vel=salesData[p.id]?.[sid]?salesData[p.id][sid]/SALES_DAYS:0;
-        if(vel<=0) return;
-        const days=Math.floor(cur/vel);
-        if(days<THRESH) runout.push({product:p.name,city:cityName(s.title),stock:cur,vel,days});
+    if(hasPerCity){
+      prods.forEach(p=>{
+        visStores.forEach(s=>{
+          const sid=String(s.id);
+          const cur=stock[p.id]?.[sid]??null;
+          if(cur===null||cur===0) return;
+          const vel=salesData[p.id]?.[sid]?salesData[p.id][sid]/SALES_DAYS:0;
+          if(vel<=0) return;
+          const days=Math.floor(cur/vel);
+          if(days<THRESH) runout.push({product:p.name,city:cityName(s.title),stock:cur,vel,days});
+        });
       });
-    });
+    } else {
+      // Company-wide: distribute velocity proportionally to stock across cities
+      prods.forEach(p=>{
+        const totalSold=prodSales.find(ps=>ps.id===p.id)?.totalSold||0;
+        if(!totalSold) return;
+        const vel=totalSold/SALES_DAYS;
+        const totalStock=visStores.reduce((acc,s)=>acc+(stock[p.id]?.[String(s.id)]??0),0);
+        if(!totalStock) return;
+        visStores.forEach(s=>{
+          const sid=String(s.id);
+          const cur=stock[p.id]?.[sid]??null;
+          if(cur===null||cur===0) return;
+          const cityVel=vel*(cur/totalStock); // proportional share of velocity
+          if(cityVel<=0) return;
+          const days=Math.floor(cur/cityVel);
+          if(days<THRESH) runout.push({product:p.name,city:cityName(s.title),stock:cur,vel:cityVel,days});
+        });
+      });
+    }
     runout.sort((a,b)=>a.days-b.days);
 
     const runoutRows=runout.slice(0,60).map(r=>{
@@ -1085,38 +1143,43 @@ function renderAnalytics(){
         <td class="name" title="${esc(r.product)}">${esc(r.product.length>36?r.product.slice(0,36)+'…':r.product)}</td>
         <td>${esc(r.city)}</td>
         <td style="text-align:right">${r.stock}</td>
-        <td style="text-align:right">${r.vel.toFixed(1)}</td>
+        <td style="text-align:right">${r.vel.toFixed(2)}</td>
         <td style="text-align:right"><span class="days-badge ${urgCls}">${r.days} дн.</span></td>
       </tr>`;
     }).join('');
+
+    const runoutTip=hasPerCity
+      ?`Товары, которые закончатся на складе в течение ${THRESH} дней.`
+      :`Товары, которые закончатся в течение ${THRESH} дней.\n⚠️ Оценка: поле UF_CRM_SHOP не заполнено в сделках,\nскорость распределена пропорционально остатку по городам.`;
 
     const runoutSection=runout.length?`
       <div class="a-table-wrap">
         <div class="a-table-title">
           <i class="bi bi-hourglass-split" style="color:#dc2626"></i>
           Скоро закончатся — до ${THRESH} дней
-          <span class="help-tip" data-tip="Товары, которые закончатся на складе\nв течение ${THRESH} дней при текущей скорости продаж.\n\n🔴 Красный — менее 7 дней, срочно!\n🟡 Жёлтый — 7–14 дней\n🟢 Зелёный — 14–${THRESH} дней\n\nРасчёт: остаток ÷ средние продажи в день\nза последние ${SALES_DAYS} дней.">?</span>
-          <span style="margin-left:auto;font-size:11px;font-weight:400;color:var(--muted)">${runout.length} позиций</span>
+          <span class="help-tip" data-tip="${esc(runoutTip)}">?</span>
+          <span style="margin-left:auto;font-size:11px;font-weight:400;color:var(--muted)">${runout.length} позиций${!hasPerCity?' · оценка':''}</span>
         </div>
         <table class="a-table">
-          <thead><tr>
-            <th style="min-width:200px">Товар</th>
-            <th>Город</th>
-            <th style="text-align:right">Остаток</th>
-            <th style="text-align:right" data-tip="Среднее кол-во продаж в день\nза последние ${SALES_DAYS} дней">Прод./день</th>
-            <th style="text-align:right">Осталось</th>
-          </tr></thead>
+          <thead><tr><th style="min-width:200px">Товар</th><th>Город</th><th style="text-align:right">Остаток</th><th style="text-align:right">Прод./день</th><th style="text-align:right">Осталось</th></tr></thead>
           <tbody>${runoutRows}</tbody>
         </table>
-        ${runout.length>60?`<div style="padding:10px 15px;font-size:11px;color:var(--muted)">Показано 60 из ${runout.length}. Используйте фильтр по городу в таблице остатков.</div>`:''}
+        ${runout.length>60?`<div style="padding:10px 15px;font-size:11px;color:var(--muted)">Показано 60 из ${runout.length}.</div>`:''}
       </div>`:
       `<div class="alert-box" style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534">
         <i class="bi bi-check-circle-fill" style="font-size:20px;flex-shrink:0"></i>
         <div><div class="alert-title">Дефицита не ожидается</div>
-        <div style="font-size:12px;margin-top:2px">Ни один товар не заканчивается в течение ${THRESH} дней при текущей скорости продаж.</div></div>
+        <div style="font-size:12px;margin-top:2px">Ни один товар не заканчивается в течение ${THRESH} дней.</div></div>
       </div>`;
 
+    const modeNote=!hasPerCity?`<div class="alert-box info" style="padding:8px 14px">
+      <i class="bi bi-info-circle" style="font-size:16px;flex-shrink:0"></i>
+      <div style="font-size:12px">Продажи по складам: данные суммированы по компании в целом (поле <b>UF_CRM_SHOP</b> не заполнено в сделках).
+      ABC-анализ корректен. Разбивка по городам недоступна. Для полной аналитики по городам заполняйте поле склада в каждой сделке.</div>
+    </div>`:'';
+
     salesHTML=`
+      ${modeNote}
       ${runoutSection}
       <div class="charts-row">
         <div class="chart-card">
@@ -1139,20 +1202,7 @@ function renderAnalytics(){
             <tbody>${abcRows}</tbody>
           </table>
         </div>
-        <div class="a-table-wrap">
-          <div class="a-table-title">
-            <i class="bi bi-lightning-charge" style="color:#16a34a"></i> Быстрые города
-            <span class="help-tip" data-tip="${TIP_VEL.replace(/"/g,'&quot;')}">?</span>
-          </div>
-          <table class="a-table"><tbody>${strongCities.map((c,i)=>`<tr><td class="rank">${i+1}</td><td class="name">${esc(c.name)}</td><td class="val good">${fmtVel(c.velocity)} шт./д</td></tr>`).join('')}</tbody></table>
-        </div>
-        <div class="a-table-wrap">
-          <div class="a-table-title">
-            <i class="bi bi-hourglass" style="color:#dc2626"></i> Медленные города
-            <span class="help-tip" data-tip="${TIP_VEL.replace(/"/g,'&quot;')}">?</span>
-          </div>
-          <table class="a-table"><tbody>${weakCities.map((c,i)=>`<tr><td class="rank">${i+1}</td><td class="name">${esc(c.name)}</td><td class="val bad">${fmtVel(c.velocity)} шт./д</td></tr>`).join('')}</tbody></table>
-        </div>
+        ${citySection}
       </div>`;
 
     setTimeout(()=>{
@@ -1554,7 +1604,7 @@ async function runCrmDiagnostic() {
     const resp = await apiGet(WEBHOOK,'crm.deal.list',{
       'filter[STAGE_SEMANTIC_ID]':'S',
       'filter[>=CLOSEDATE]':since.toISOString().slice(0,10),
-      'select[0]':'ID','select[1]':'UF_CRM_SHOP','select[2]':'TITLE','select[3]':'CLOSEDATE',
+      'select[0]':'*',
       'order[CLOSEDATE]':'DESC', start:0
     });
     const deals = extractArr(resp).slice(0,5);
@@ -1571,49 +1621,57 @@ async function runCrmDiagnostic() {
     });
     const stockRows = extractArr(stockSample).slice(0,3);
 
+    // Show all non-empty UF_* fields from first deal to find the store field
+    const firstDeal=deals[0]||{};
+    const ufFields=Object.entries(firstDeal).filter(([k,v])=>k.startsWith('UF_')&&v!=null&&v!==''&&v!==false&&String(v)!=='0');
+
     let html='<div style="margin-bottom:12px;padding:8px 10px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;font-size:11px">';
-    html+='<b>Как читать:</b> Если «ID в складе?» = ❌ — ID товара из сделки не совпадает с ID в каталоге склада → данные считаются неверно.<br>';
-    html+='Если «Склад» = ❌ не найдено — значение поля UF_CRM_SHOP не совпадает ни с одним складом.';
+    html+=`<b>Сделок за 90 дней: ${firstResp.total||0}</b><br>`;
+    html+=ufFields.length
+      ?`Пользовательские поля (UF_*) с данными: <b>${ufFields.map(([k,v])=>`${k} = ${esc(String(v).slice(0,30))}`).join(' | ')}</b>`
+      :`<span style="color:#dc2626">Все UF_* поля пустые в этой сделке — поле склада/города не заполняется.</span>`;
     html+='</div>';
 
-    html+='<b>5 последних закрытых сделок:</b><br><br>';
+    // Build name lookup for diagnostic
+    const productByNameDiag=new Map();
+    Object.values(products).filter(p=>p.iblockId==MAIN_IBLOCK_ID).forEach(p=>{productByNameDiag.set(p.name.toLowerCase().trim(),p.id);});
+
+    html+='<b>Товары в последних 5 сделках:</b><br><br>';
     html+='<table class="a-table" style="font-size:11px;width:100%"><thead><tr>';
-    html+='<th>#Сделка</th><th>UF_CRM_SHOP (сырое)</th><th>→ Склад</th><th>PRODUCT_ID</th><th>Название в сделке</th><th>Кол-во</th><th>ID в складе?</th></tr></thead><tbody>';
+    html+='<th>#Сделка</th><th>PRODUCT_ID</th><th>Название в сделке</th><th>Кол-во</th><th>→ Найден в каталоге?</th></tr></thead><tbody>';
 
     deals.forEach(d=>{
       const did=String(d.ID||d.id);
-      const shopRaw=d.UF_CRM_SHOP!==undefined?String(d.UF_CRM_SHOP):'(не задано)';
-      const resolvedId=resolveShop(d.UF_CRM_SHOP);
-      const storeName=resolvedId?(stores.find(s=>String(s.id)===resolvedId)?.title||'ID:'+resolvedId):'❌ не найдено';
-      const storeColor=resolvedId?'#166534':'#dc2626';
       const rows=extractArrItem(rowsRes?.['d'+did]||[]);
-
       if(!rows.length){
-        html+=`<tr><td>#${did}</td><td style="font-family:monospace">${esc(shopRaw)}</td>`;
-        html+=`<td style="color:${storeColor}">${esc(storeName)}</td>`;
-        html+=`<td colspan="4" style="color:var(--muted);font-style:italic">Нет товаров в сделке</td></tr>`;
+        html+=`<tr><td>#${did}</td><td colspan="4" style="color:var(--muted);font-style:italic">Нет товаров в сделке</td></tr>`;
       } else {
         rows.forEach((row,ri)=>{
           const pid=String(row.PRODUCT_ID||row.productId||'0');
-          const pname=String(row.PRODUCT_NAME||row.productName||'—');
+          const pname=String(row.PRODUCT_NAME||row.productName||'');
           const qty=row.QUANTITY||row.quantity||'—';
-          const inStock=stock[pid]!==undefined?'✅':'❌';
-          const catalogMatch=products[pid]?.name||'';
-          if(ri===0){
-            html+=`<tr><td rowspan="${rows.length}">#${did}<br><small style="color:var(--muted)">${(d.CLOSEDATE||'').slice(0,10)}</small></td>`;
-            html+=`<td rowspan="${rows.length}" style="font-family:monospace">${esc(shopRaw)}</td>`;
-            html+=`<td rowspan="${rows.length}" style="color:${storeColor}">${esc(storeName)}</td>`;
-          } else {html+=`<tr>`;}
+          const byId=pid!=='0'&&stock[pid]!==undefined;
+          const catalogById=byId?products[pid]?.name:'';
+          const plow=pname.toLowerCase().trim();
+          let byNameId=productByNameDiag.get(plow)||'';
+          if(!byNameId){const pre=plow.slice(0,20);for(const[n,id]of productByNameDiag){if(n.startsWith(pre)||plow.startsWith(n.slice(0,20))){byNameId=id;break;}}}
+          const catalogByName=byNameId?products[byNameId]?.name:'';
+          let status='';
+          if(byId){status=`✅ ID совпадает: <i>${esc((catalogById||pid).slice(0,35))}</i>`;}
+          else if(byNameId){status=`🔶 по имени: <i>${esc(catalogByName.slice(0,35))}</i>`;}
+          else{status=`❌ не найден`;}
+          if(ri===0)html+=`<tr><td rowspan="${rows.length}">#${did}<br><small>${(d.CLOSEDATE||'').slice(0,10)}</small></td>`;
+          else html+=`<tr>`;
           html+=`<td style="font-family:monospace">${esc(pid)}</td>`;
-          html+=`<td title="${esc(pname)}">${esc(pname.length>30?pname.slice(0,30)+'…':pname)}</td>`;
+          html+=`<td title="${esc(pname)}">${esc(pname.length>45?pname.slice(0,45)+'…':pname)}</td>`;
           html+=`<td style="text-align:right">${qty}</td>`;
-          html+=`<td>${inStock}${catalogMatch?`<br><small style="color:#166534">${esc(catalogMatch.slice(0,25))}</small>`:'<br><small style="color:#dc2626">нет в каталоге</small>'}</td></tr>`;
+          html+=`<td style="font-size:10px">${status}</td></tr>`;
         });
       }
     });
     html+='</tbody></table>';
 
-    html+=`<br><b>Пример строк из catalog.storeproduct.list (для сравнения ID):</b><br>`;
+    html+=`<br><b>Пример строк склада (catalog.storeproduct.list):</b><br>`;
     html+='<table class="a-table" style="font-size:11px"><thead><tr><th>PRODUCT_ID</th><th>STORE_ID</th><th>AMOUNT</th><th>Название в каталоге</th></tr></thead><tbody>';
     stockRows.forEach(r=>{
       const pid=String(r.productId??r.PRODUCT_ID);
