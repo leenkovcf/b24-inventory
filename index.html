@@ -337,7 +337,7 @@ tbody tr:hover .hide-btn{display:inline}
       <span class="role-badge" id="role-badge"></span>
       <span class="sync-badge" id="sync-badge">↑ сохранение...</span>
       <button class="icon-btn" onclick="reloadData()" title="Обновить данные"><i class="bi bi-arrow-clockwise"></i></button>
-      <button class="icon-btn" onclick="resetSettings()" title="Настройки"><i class="bi bi-gear"></i></button>
+      <button class="icon-btn" id="btn-reset-settings" onclick="resetSettings()" title="Настройки"><i class="bi bi-gear"></i></button>
     </div>
   </header>
 
@@ -746,6 +746,7 @@ function applyRoleUI() {
   if (canManage)     document.getElementById('profiles-section').style.display='';
   if (!canAnalytics) document.getElementById('tab-analytics-btn').style.display='none';
   if (!canAnalytics) document.getElementById('tab-runout-btn').style.display='none';
+  if (userRole!=='admin') document.getElementById('btn-reset-settings').style.display='none';
 }
 
 async function loadProducts(ids) {
