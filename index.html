@@ -162,7 +162,7 @@ tbody tr:hover .hide-btn{display:inline}
 .dot-ok{background:#22c55e}.dot-low{background:#eab308}.dot-zero{background:#ef4444}
 
 /* ANALYTICS */
-.analytics-wrap{flex:1;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:18px}
+.analytics-wrap{flex:1;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:18px;min-height:0}
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px}
 .kpi-card{background:var(--surface);border-radius:10px;padding:18px;border:1px solid var(--border);display:flex;flex-direction:column;gap:5px}
 .kpi-label{font-size:11px;color:var(--muted);font-weight:600}
@@ -188,7 +188,7 @@ tbody tr:hover .hide-btn{display:inline}
 .a-table th{font-weight:600;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px;background:#f8fafc}
 .a-table tr:last-child td{border-bottom:none}
 .a-table .rank{color:var(--muted);width:24px}
-.a-table .name{color:var(--text)}
+.a-table .name{color:var(--text);white-space:normal;word-break:break-word;min-width:150px}
 .a-table .val{text-align:right;font-weight:600}
 .a-table .val.bad{color:#dc2626}
 .a-table .val.good{color:#16a34a}
@@ -547,6 +547,7 @@ let refreshCountdown = 0;
 let chartBar     = null;
 let chartDoughnut = null;
 let saveTimer    = null;
+let productPrices = {};
 let runoutData    = undefined;
 let runoutDays    = null;
 let runoutLoading = false;
@@ -838,6 +839,7 @@ async function loadSalesData() {
     if(deals.length > MAX_DEALS) deals.length = MAX_DEALS;
 
     salesData = {};
+    productPrices = {};
     if (!deals.length) { sessionStorage.setItem('inv_sales_v7',JSON.stringify(salesData)); salesLoading=false; if(currentTab==='analytics')renderAnalytics();if(currentTab==='runout')renderRunout(); return; }
 
     // '__ALL__' = company-wide bucket when UF_CRM_SHOP is not filled
@@ -897,6 +899,8 @@ async function loadSalesData() {
             if(!pid||!qty) return;
             if(!salesData[pid]) salesData[pid]={};
             salesData[pid][storeId]=(salesData[pid][storeId]||0)+qty;
+            const price=parseFloat(row.PRICE||row.price||0);
+            if(price>0) productPrices[pid]=price;
           });
         });
       });
@@ -1140,7 +1144,7 @@ function renderAnalytics(){
     const top15=prodSales.filter(p=>p.totalSold>0).slice(0,15);
 
     const ABC_LIMIT=5;
-    const mkAbcRow=(p,cls,extra)=>`<tr${extra?' class="abc-extra" style="display:none"':''}><td class="rank"><span class="abc-badge abc-${cls}">${cls}</span></td><td class="name" title="${esc(p.name)}">${esc(p.name.length>32?p.name.slice(0,32)+'…':p.name)}</td><td class="val">${fmtNum(p.totalSold)} шт.</td></tr>`;
+    const mkAbcRow=(p,cls,extra)=>`<tr${extra?' class="abc-extra" style="display:none"':''}><td class="rank"><span class="abc-badge abc-${cls}">${cls}</span></td><td class="name" title="${esc(p.name)}">${esc(p.name)}</td><td class="val">${fmtNum(p.totalSold)} шт.</td></tr>`;
     const abcAllRows=['A','B','C'].flatMap(cls=>prodSales.filter(p=>p.abc===cls).map((p,i)=>mkAbcRow(p,cls,i>=ABC_LIMIT))).join('');
     const abcHidden=prodSales.length-['A','B','C'].reduce((s,cls)=>s+Math.min(ABC_LIMIT,prodSales.filter(p=>p.abc===cls).length),0);
     const abcMoreBtn=abcHidden>0?`<button class="btn-sm" style="margin:6px 0 4px 8px;font-size:11px" onclick="toggleAbcAll(this,${prodSales.length})">Показать все (${prodSales.length})</button>`:'';
@@ -1165,12 +1169,23 @@ function renderAnalytics(){
       const mkCitySection=(title,icon,color,all,idSuf)=>{
         const top=all.slice(0,10), rest=all.slice(10);
         const restHtml=rest.length?`<div id="${idSuf}" style="display:none;border-top:1px solid var(--border)"><table class="a-table"><tbody>${mkCityRows(rest,icon==='good'?'good':'bad',10)}</tbody></table></div><button class="btn-sm" style="margin:6px 0 4px 8px;font-size:11px" onclick="toggleMore('${idSuf}',this,${all.length})">Показать все (${all.length})</button>`:'';
-        return`<div class="a-table-wrap"><div class="a-table-title">${title}</div><table class="a-table"><tbody>${mkCityRows(top,icon==='good'?'good':'bad')}</tbody></table>${restHtml}</div>`;
+        return`<div class="a-table-wrap"><div class="a-table-title">${title}</div><div style="max-height:400px;overflow-y:auto"><table class="a-table"><tbody>${mkCityRows(top,icon==='good'?'good':'bad')}</tbody></table>${restHtml}</div></div>`;
       };
       citySection=
         mkCitySection(`<i class="bi bi-lightning-charge" style="color:#16a34a"></i> Быстрые города <span class="help-tip" data-tip="${TIP_VEL}">?</span>`,'good','#16a34a',strongCities,'fast-more')+
         mkCitySection(`<i class="bi bi-hourglass" style="color:#dc2626"></i> Медленные города <span class="help-tip" data-tip="${TIP_VEL}">?</span>`,'bad','#dc2626',weakCities,'slow-more');
     }
+
+    // Total stock value (using prices from CRM deal rows)
+    let totalStockValue=0;
+    let pricedProds=0;
+    prods.forEach(p=>{
+      const price=productPrices[p.id];
+      if(!price) return;
+      pricedProds++;
+      const s=visStores.reduce((acc,st)=>acc+(stock[p.id]?.[String(st.id)]??0),0);
+      totalStockValue+=s*price;
+    });
 
     // Runout is rendered in the Дефицит tab — see renderRunout()
 
@@ -1198,10 +1213,12 @@ function renderAnalytics(){
             <i class="bi bi-grid-1x2"></i> ABC-анализ по продажам
             <span class="help-tip" data-tip="${TIP_ABC.replace(/"/g,'&quot;')}">?</span>
           </div>
-          <table class="a-table" id="abc-table">
-            <thead><tr><th>Кл.</th><th>Товар</th><th style="text-align:right">Продано</th></tr></thead>
-            <tbody>${abcAllRows}</tbody>
-          </table>
+          <div style="max-height:400px;overflow-y:auto">
+            <table class="a-table" id="abc-table">
+              <thead style="position:sticky;top:0;z-index:1"><tr><th>Кл.</th><th>Товар</th><th style="text-align:right">Продано</th></tr></thead>
+              <tbody>${abcAllRows}</tbody>
+            </table>
+          </div>
           ${abcMoreBtn}
         </div>
         ${citySection}
@@ -1244,6 +1261,10 @@ function renderAnalytics(){
         ${salesMatchRate<60?'<span style="color:#dc2626"> — проверьте поле UF_CRM_SHOP в сделках</span>':''}</div>`
     : '';
 
+  const stockValueCard=totalStockValue>0
+    ?`<div class="kpi-card ok"><div class="kpi-label">Стоимость остатков</div><div class="kpi-value" style="font-size:20px">${fmtNum(Math.round(totalStockValue))} ₽</div><div class="kpi-sub">по ценам CRM (${pricedProds} тов.)</div></div>`
+    :(salesLoading?`<div class="kpi-card"><div class="kpi-label">Стоимость остатков</div><div class="kpi-value" style="font-size:14px;color:var(--muted)">загрузка...</div><div class="kpi-sub">из CRM</div></div>`:'');
+
   wrap.innerHTML=`
     ${warnHTML}
     <div class="kpi-grid">
@@ -1252,6 +1273,7 @@ function renderAnalytics(){
       <div class="kpi-card ok"><div class="kpi-label">Суммарный остаток</div><div class="kpi-value">${fmtNum(totalUnits)}</div><div class="kpi-sub">единиц</div></div>
       <div class="kpi-card ${coverage<60?'warn':'ok'}"><div class="kpi-label">Покрытие складов <span class="help-tip" data-tip="${TIP_KPI_COV}">?</span></div><div class="kpi-value">${coverage}%</div><div class="kpi-sub">&gt;${LOW_STOCK} шт. на складе</div></div>
       <div class="kpi-card warn"><div class="kpi-label">Нулевых позиций</div><div class="kpi-value">${fmtNum(zeroCnt)}</div><div class="kpi-sub">товар × город = 0</div></div>
+      ${stockValueCard}
     </div>
     ${matchBadge}
     ${salesHTML}`;
@@ -1584,7 +1606,7 @@ function renderRunout(){
   const runoutCities=[...new Set(runout.map(r=>r.city))].sort();
   const rows=runout.map(r=>{
     const urgCls=r.days<7?'days-urgent':r.days<14?'days-warn':'days-ok';
-    return`<tr data-city="${esc(r.city)}"><td class="name" title="${esc(r.product)}">${esc(r.product.length>36?r.product.slice(0,36)+'…':r.product)}</td><td>${esc(r.city)}</td><td style="text-align:right">${r.stock}</td><td style="text-align:right">${r.vel.toFixed(2)}</td><td style="text-align:right"><span class="days-badge ${urgCls}">${r.days} дн.</span></td></tr>`;
+    return`<tr data-city="${esc(r.city)}"><td class="name">${esc(r.product)}</td><td style="white-space:nowrap">${esc(r.city)}</td><td style="text-align:right;white-space:nowrap">${r.stock}</td><td style="text-align:right;white-space:nowrap">${r.vel.toFixed(2)}</td><td style="text-align:right;white-space:nowrap"><span class="days-badge ${urgCls}">${r.days} дн.</span></td></tr>`;
   }).join('');
   const cityBtns=runoutCities.length>1?`<div class="runout-filters"><span style="font-size:11px;color:var(--muted)">Город:</span><button class="btn-sm active runout-city-btn" onclick="filterRunout('',this)">Все</button>${runoutCities.map(c=>`<button class="btn-sm runout-city-btn" onclick="filterRunout('${esc(c)}',this)">${esc(c)}</button>`).join('')}</div>`:'';
   const tip=hasPerCity?`Товары, которые закончатся на складе в течение ${THRESH} дней.\nСортировка: сначала самые срочные.`:`Оценка: данные суммированы по компании (UF_CRM_SHOP не заполнен).`;
@@ -1598,7 +1620,9 @@ function renderRunout(){
     <div class="a-table-wrap">
       <div class="a-table-title"><i class="bi bi-hourglass-split" style="color:#dc2626"></i> Скоро закончатся — до ${THRESH} дней <span class="help-tip" data-tip="${esc(tip)}">?</span></div>
       ${cityBtns}
-      <table class="a-table"><thead><tr><th style="min-width:200px">Товар</th><th>Город</th><th style="text-align:right">Остаток</th><th style="text-align:right">Прод./день</th><th style="text-align:right">Осталось</th></tr></thead><tbody id="runout-tbody">${rows}</tbody></table>
+      <div style="max-height:calc(100vh - 220px);overflow-y:auto">
+        <table class="a-table"><thead style="position:sticky;top:0;z-index:1"><tr><th style="min-width:180px">Товар</th><th style="white-space:nowrap">Город</th><th style="text-align:right;white-space:nowrap">Остаток</th><th style="text-align:right;white-space:nowrap">Прод./день</th><th style="text-align:right;white-space:nowrap">Осталось</th></tr></thead><tbody id="runout-tbody">${rows}</tbody></table>
+      </div>
     </div>`:
     `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding:0 2px">
       <div style="font-size:13px;font-weight:600">Период: <b>${runoutDays} дн.</b></div>
