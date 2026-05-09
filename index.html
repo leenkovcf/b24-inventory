@@ -733,6 +733,7 @@ function initSelectedCats() {
 // ================================================================
 // CRM SALES DATA (background)
 // ================================================================
+let salesStatus='';
 async function loadSalesData() {
   if (salesLoading) return;
   const cached = sessionStorage.getItem('inv_sales_v3');
@@ -740,14 +741,17 @@ async function loadSalesData() {
     try { salesData=JSON.parse(cached); if(currentTab==='analytics')renderAnalytics(); return; } catch(e){}
   }
   salesLoading = true;
+  salesStatus = 'Загружаем список сделок...';
   if (currentTab==='analytics') renderAnalytics();
   try {
     const since = new Date();
     since.setDate(since.getDate()-SALES_DAYS);
     const dateStr = since.toISOString().slice(0,10);
 
+    // Load deals - filter server-side to only those with UF_CRM_SHOP set
     const firstResp = await apiGet(WEBHOOK,'crm.deal.list',{
       'filter[STAGE_SEMANTIC_ID]':'S','filter[>=CLOSEDATE]':dateStr,
+      'filter[!UF_CRM_SHOP]':'',
       'select[0]':'ID','select[1]':'UF_CRM_SHOP', start:0
     });
     if (firstResp.error) { salesData=null; salesLoading=false; if(currentTab==='analytics')renderAnalytics(); return; }
@@ -759,7 +763,7 @@ async function loadSalesData() {
       for(let s=50;s<total;s+=50) starts.push(s);
       for(let i=0;i<starts.length;i+=49){
         const chunk=starts.slice(i,i+49); const cmds={};
-        chunk.forEach((s,idx)=>{cmds['r'+idx]='crm.deal.list?filter[STAGE_SEMANTIC_ID]=S&filter[>=CLOSEDATE]='+dateStr+'&select[0]=ID&select[1]=UF_CRM_SHOP&start='+s;});
+        chunk.forEach((s,idx)=>{cmds['r'+idx]='crm.deal.list?filter[STAGE_SEMANTIC_ID]=S&filter[>=CLOSEDATE]='+dateStr+'&filter[!UF_CRM_SHOP]=&select[0]=ID&select[1]=UF_CRM_SHOP&start='+s;});
         const res=await apiBatch(cmds);
         if(res) Object.values(res).forEach(item=>deals.push(...extractArrItem(item)));
       }
@@ -768,22 +772,38 @@ async function loadSalesData() {
     salesData = {};
     if (!deals.length) { sessionStorage.setItem('inv_sales_v3',JSON.stringify(salesData)); salesLoading=false; if(currentTab==='analytics')renderAnalytics(); return; }
 
-    // Build a Map for O(1) lookup instead of O(n²) find()
-    const dealMap = new Map(deals.map(d=>[String(d.ID||d.id), d]));
+    // Pre-resolve stores, skip deals with no matching store
+    const dealMap = new Map();
+    deals.forEach(d => {
+      const storeId = resolveShop(d.UF_CRM_SHOP||d.ufCrmShop);
+      if (storeId) dealMap.set(String(d.ID||d.id), storeId);
+    });
+    const validDeals = deals.filter(d => dealMap.has(String(d.ID||d.id)));
 
-    for(let i=0;i<deals.length;i+=49){
-      const chunk=deals.slice(i,i+49); const cmds={};
+    // Build batches for product rows
+    const batches=[];
+    for(let i=0;i<validDeals.length;i+=49){
+      const chunk=validDeals.slice(i,i+49); const cmds={};
       chunk.forEach(d=>{const id=d.ID||d.id; cmds['d'+id]='crm.deal.productrows.get?id='+id;});
-      const res=await apiBatch(cmds);
-      if(res){
+      batches.push(cmds);
+    }
+
+    // Process batches in parallel groups of 5 (5x faster than sequential)
+    const CONCURRENCY=5;
+    for(let i=0;i<batches.length;i+=CONCURRENCY){
+      salesStatus=`Загружаем строки сделок: ${Math.min(i*49,validDeals.length)} / ${validDeals.length}...`;
+      if(currentTab==='analytics') {
+        const el=document.querySelector('.sales-spinner-text');
+        if(el) el.textContent=salesStatus;
+      }
+      const group=batches.slice(i,i+CONCURRENCY);
+      const results=await Promise.all(group.map(cmds=>apiBatch(cmds)));
+      results.forEach(res=>{
+        if(!res) return;
         Object.entries(res).forEach(([key,rawRows])=>{
-          const dealId=key.slice(1);
-          const deal=dealMap.get(dealId);
-          if(!deal) return;
-          const storeId=resolveShop(deal.UF_CRM_SHOP||deal.ufCrmShop);
+          const storeId=dealMap.get(key.slice(1));
           if(!storeId) return;
-          const rows=extractArrItem(rawRows);
-          rows.forEach(row=>{
+          extractArrItem(rawRows).forEach(row=>{
             const pid=String(row.PRODUCT_ID||row.productId||'');
             const qty=parseFloat(row.QUANTITY||row.quantity)||0;
             if(!pid||!qty) return;
@@ -791,7 +811,7 @@ async function loadSalesData() {
             salesData[pid][storeId]=(salesData[pid][storeId]||0)+qty;
           });
         });
-      }
+      });
     }
     sessionStorage.setItem('inv_sales_v3',JSON.stringify(salesData));
   } catch(e) {
@@ -799,6 +819,7 @@ async function loadSalesData() {
     salesData=null;
   }
   salesLoading=false;
+  salesStatus='';
   if(currentTab==='analytics') renderAnalytics();
 }
 
@@ -978,7 +999,7 @@ function renderAnalytics(){
   const TIP_VEL=`Скорость продаж — среднее кол-во товаров\nпродаваемых в день за последние ${SALES_DAYS} дней.\n\nБыстрые города — наибольший поток заказов.\nМедленные — где товар расходуется медленнее.`;
 
   if(salesLoading){
-    salesHTML=`<div class="a-table-wrap"><div class="a-table-title"><i class="bi bi-bar-chart-line"></i> Аналитика продаж</div><div class="sales-spinner"><div class="spinner"></div> Загружаем данные о продажах из CRM (фоновая загрузка)...</div></div>`;
+    salesHTML=`<div class="a-table-wrap"><div class="a-table-title"><i class="bi bi-bar-chart-line"></i> Аналитика продаж</div><div class="sales-spinner"><div class="spinner"></div> <span class="sales-spinner-text">${salesStatus||'Загружаем данные о продажах из CRM...'}</span></div></div>`;
   } else if(salesData===null){
     salesHTML=`<div class="alert-box info"><i class="bi bi-info-circle-fill" style="font-size:20px;flex-shrink:0"></i><div><div class="alert-title">Нет прав CRM — ABC-анализ и "скоро закончатся" недоступны</div><div style="font-size:12px;margin-top:4px">Добавьте право <strong>CRM</strong> к вебхуку: Битрикс24 → Настройки → Разработчикам → Входящие вебхуки → ваш вебхук → добавить «CRM».<br>Также убедитесь, что в закрытых сделках заполнено поле <strong>UF_CRM_SHOP</strong> (склад/магазин).</div></div></div>`;
   } else if(salesData&&Object.keys(salesData).length===0){
