@@ -734,6 +734,7 @@ function initSelectedCats() {
 // CRM SALES DATA (background)
 // ================================================================
 let salesStatus='';
+let salesDealsTotal=0, salesDealsMatched=0, salesMatchRate=0;
 async function loadSalesData() {
   if (salesLoading) return;
   const cached = sessionStorage.getItem('inv_sales_v3');
@@ -779,6 +780,8 @@ async function loadSalesData() {
       if (storeId) dealMap.set(String(d.ID||d.id), storeId);
     });
     const validDeals = deals.filter(d => dealMap.has(String(d.ID||d.id)));
+    salesMatchRate = validDeals.length && deals.length ? Math.round(validDeals.length/deals.length*100) : 0;
+    salesDealsTotal = deals.length; salesDealsMatched = validDeals.length;
 
     // Build batches for product rows
     const batches=[];
@@ -823,14 +826,28 @@ async function loadSalesData() {
   if(currentTab==='analytics') renderAnalytics();
 }
 
+// Strip trailing Russian vowels/soft-sign to normalize declension:
+// "Москве"→"Москв", "Кургане"→"Курган", "Рязани"→"Рязан", etc.
+const normCity = w => w.toLowerCase().replace(/[аяеёуюиьъ]+$/,'');
+
 function resolveShop(val) {
   if(!val) return null;
   const str=String(val).trim();
   if(!str||str==='0') return null;
+  // 1. Direct numeric store ID match
   if(stores.some(s=>String(s.id)===str)) return str;
   const lower=str.toLowerCase();
-  const s=stores.find(s=>s.title.toLowerCase()===lower||cityName(s.title).toLowerCase()===lower);
-  return s?String(s.id):null;
+  // 2. Exact title or cityName match
+  let s=stores.find(s=>s.title.toLowerCase()===lower||cityName(s.title).toLowerCase()===lower);
+  if(s) return String(s.id);
+  // 3. Declension-normalized match (Москва↔Москве, Курган↔Кургане, etc.)
+  const nv=normCity(lower);
+  s=stores.find(s=>normCity(cityName(s.title))===nv);
+  if(s) return String(s.id);
+  // 4. Prefix match: "Москва" in "Москве на Маршала Бирюзова"
+  s=stores.find(s=>{const nc=normCity(cityName(s.title));return nc.startsWith(nv)||nv.startsWith(nc);});
+  if(s) return String(s.id);
+  return null;
 }
 
 // ================================================================
@@ -956,13 +973,6 @@ function renderAnalytics(){
   }));
   const coverage=totalPos?Math.round(okCnt/totalPos*100):0;
 
-  const cityStockData=visStores.map(s=>{
-    let total=0,zeros=0,cnt=0;
-    prods.forEach(p=>{const a=stock[p.id]?.[String(s.id)]??null;if(a!==null){cnt++;total+=a;if(a===0)zeros++;}});
-    const zeroRate=cnt?zeros/cnt:0;
-    return{name:cityName(s.title),id:String(s.id),total,zeroRate,cls:zeroRate>.5?'bad':zeroRate>.25?'low':'ok'};
-  }).sort((a,b)=>b.total-a.total);
-
   const zeroEverywhere=prods.filter(p=>{
     const amts=visStores.map(s=>stock[p.id]?.[String(s.id)]??null).filter(a=>a!==null);
     return amts.length>0&&amts.every(a=>a===0);
@@ -1014,13 +1024,22 @@ function renderAnalytics(){
     const n=prodSales.length, aLim=Math.ceil(n*.2), bLim=Math.ceil(n*.8);
     prodSales.forEach((p,i)=>{p.abc=i<aLim?'A':i<bLim?'B':'C';});
 
-    const cityVelocity=visStores.map(s=>{
-      const sid=String(s.id); let totalSold=0;
-      Object.values(salesData).forEach(sm=>{totalSold+=sm[sid]||0;});
-      return{name:cityName(s.title),sid,velocity:totalSold/SALES_DAYS,totalSold};
-    }).sort((a,b)=>b.velocity-a.velocity);
+    // Group stores by city (normalized first word to handle multiple locations per city)
+    const cityGroups={};
+    visStores.forEach(s=>{
+      const cn=cityName(s.title);
+      const key=normCity(cn.split(' ')[0]);
+      if(!cityGroups[key]){cityGroups[key]={name:cn,totalSold:0};}
+      else if(cn.length<cityGroups[key].name.length){cityGroups[key].name=cn;}
+      const sid=String(s.id);
+      Object.values(salesData).forEach(sm=>{cityGroups[key].totalSold+=sm[sid]||0;});
+    });
+    const cityVelocity=Object.values(cityGroups)
+      .map(c=>({name:c.name,velocity:c.totalSold/SALES_DAYS,totalSold:c.totalSold}))
+      .sort((a,b)=>b.velocity-a.velocity);
 
-    const strongCities=cityVelocity.slice(0,10);
+    const fmtVel=v=>v<0.1?'< 0.1':v.toFixed(1);
+    const strongCities=cityVelocity.filter(c=>c.velocity>0).slice(0,10);
     const weakCities=[...cityVelocity].filter(c=>c.velocity>0).sort((a,b)=>a.velocity-b.velocity).slice(0,10);
     const top15=prodSales.slice(0,15);
 
@@ -1113,14 +1132,14 @@ function renderAnalytics(){
             <i class="bi bi-lightning-charge" style="color:#16a34a"></i> Быстрые города
             <span class="help-tip" data-tip="${TIP_VEL.replace(/"/g,'&quot;')}">?</span>
           </div>
-          <table class="a-table"><tbody>${strongCities.map((c,i)=>`<tr><td class="rank">${i+1}</td><td class="name">${esc(c.name)}</td><td class="val good">${c.velocity.toFixed(1)} шт./д</td></tr>`).join('')}</tbody></table>
+          <table class="a-table"><tbody>${strongCities.map((c,i)=>`<tr><td class="rank">${i+1}</td><td class="name">${esc(c.name)}</td><td class="val good">${fmtVel(c.velocity)} шт./д</td></tr>`).join('')}</tbody></table>
         </div>
         <div class="a-table-wrap">
           <div class="a-table-title">
             <i class="bi bi-hourglass" style="color:#dc2626"></i> Медленные города
             <span class="help-tip" data-tip="${TIP_VEL.replace(/"/g,'&quot;')}">?</span>
           </div>
-          <table class="a-table"><tbody>${weakCities.map((c,i)=>`<tr><td class="rank">${i+1}</td><td class="name">${esc(c.name)}</td><td class="val bad">${c.velocity.toFixed(1)} шт./д</td></tr>`).join('')}</tbody></table>
+          <table class="a-table"><tbody>${weakCities.map((c,i)=>`<tr><td class="rank">${i+1}</td><td class="name">${esc(c.name)}</td><td class="val bad">${fmtVel(c.velocity)} шт./д</td></tr>`).join('')}</tbody></table>
         </div>
       </div>`;
 
@@ -1152,16 +1171,14 @@ function renderAnalytics(){
     },0);
   }
 
-  const cityGridHTML=cityStockData.map(c=>
-    `<div class="city-card ${c.cls}" data-tip="Нулей: ${Math.round(c.zeroRate*100)}% позиций">
-      <div class="city-card-name">${esc(c.name)}</div>
-      <div class="city-card-val">${fmtNum(c.total)}</div>
-      <div class="city-card-sub">${Math.round(c.zeroRate*100)}% нулей</div>
-    </div>`
-  ).join('');
-
   const TIP_KPI_COV=`Процент позиций (товар × склад),\nгде остаток превышает ${LOW_STOCK} шт.\nВысокое значение = хорошее насыщение.`;
-  const TIP_CITY_GRID=`Карта складов по остаткам:\n🟢 Зелёный — менее 25% нулей\n🟡 Жёлтый — 25–50% нулей\n🔴 Красный — более 50% нулей (дефицит)`;
+
+  // Data quality badge: show deal match stats when sales data is ready
+  const matchBadge = salesDealsTotal>0
+    ? `<div style="font-size:11px;color:var(--muted);padding:4px 0 0">
+        <i class="bi bi-database-check"></i> Сделки CRM: <b>${salesDealsMatched}</b> из <b>${salesDealsTotal}</b> совпало со складами (${salesMatchRate}%)
+        ${salesMatchRate<60?'<span style="color:#dc2626"> — проверьте поле UF_CRM_SHOP в сделках</span>':''}</div>`
+    : '';
 
   wrap.innerHTML=`
     ${warnHTML}
@@ -1172,10 +1189,7 @@ function renderAnalytics(){
       <div class="kpi-card ${coverage<60?'warn':'ok'}"><div class="kpi-label">Покрытие складов <span class="help-tip" data-tip="${TIP_KPI_COV}">?</span></div><div class="kpi-value">${coverage}%</div><div class="kpi-sub">&gt;${LOW_STOCK} шт. на складе</div></div>
       <div class="kpi-card warn"><div class="kpi-label">Нулевых позиций</div><div class="kpi-value">${fmtNum(zeroCnt)}</div><div class="kpi-sub">товар × город = 0</div></div>
     </div>
-    <div class="a-table-wrap">
-      <div class="a-table-title"><i class="bi bi-map"></i> Карта городов по складским остаткам <span class="help-tip" data-tip="${TIP_CITY_GRID}">?</span></div>
-      <div class="city-grid">${cityGridHTML}</div>
-    </div>
+    ${matchBadge}
     ${salesHTML}`;
 }
 
