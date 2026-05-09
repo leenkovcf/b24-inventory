@@ -749,7 +749,7 @@ let salesStatus='';
 let salesDealsTotal=0, salesDealsMatched=0, salesMatchRate=0;
 async function loadSalesData() {
   if (salesLoading) return;
-  const cached = sessionStorage.getItem('inv_sales_v5');
+  const cached = sessionStorage.getItem('inv_sales_v6');
   if (cached) {
     try { salesData=JSON.parse(cached); if(currentTab==='analytics')renderAnalytics(); return; } catch(e){}
   }
@@ -789,7 +789,7 @@ async function loadSalesData() {
     if(deals.length > MAX_DEALS) deals.length = MAX_DEALS;
 
     salesData = {};
-    if (!deals.length) { sessionStorage.setItem('inv_sales_v5',JSON.stringify(salesData)); salesLoading=false; if(currentTab==='analytics')renderAnalytics(); return; }
+    if (!deals.length) { sessionStorage.setItem('inv_sales_v6',JSON.stringify(salesData)); salesLoading=false; if(currentTab==='analytics')renderAnalytics(); return; }
 
     // '__ALL__' = company-wide bucket when UF_CRM_SHOP is not filled
     const GLOBAL_STORE='__ALL__';
@@ -814,12 +814,7 @@ async function loadSalesData() {
       if(!pname) return null;
       const low=pname.toLowerCase().trim();
       if(productByName.has(low)) return productByName.get(low);
-      // Prefix match: first 20 chars
-      const pre=low.slice(0,20);
-      for(const [name,id] of productByName){
-        if(name.startsWith(pre)||low.startsWith(name.slice(0,20))) return id;
-      }
-      return null;
+      return matchProductByWords(low, productByName);
     }
 
     // Build batches for product rows (all deals)
@@ -857,7 +852,7 @@ async function loadSalesData() {
         });
       });
     }
-    sessionStorage.setItem('inv_sales_v5',JSON.stringify(salesData));
+    sessionStorage.setItem('inv_sales_v6',JSON.stringify(salesData));
   } catch(e) {
     console.warn('CRM unavailable:',e.message);
     salesData=null;
@@ -865,6 +860,23 @@ async function loadSalesData() {
   salesLoading=false;
   salesStatus='';
   if(currentTab==='analytics') renderAnalytics();
+}
+
+// Word-overlap product name matching — handles CRM vs catalog name divergence.
+// Returns best-scoring catalog product ID, or null if no good match.
+const _nameStopWords = new Set(['для','в','и','на','с','к','по','от','до','из','при','о','за','под','над','без','не','или']);
+function matchProductByWords(low, nameMap) {
+  const words = low.split(/\s+/).filter(w=>w.length>3&&!_nameStopWords.has(w));
+  if(!words.length) return null;
+  let bestId=null, bestScore=0;
+  for(const [cname,cid] of nameMap){
+    const cwords=cname.split(/\s+/).filter(w=>w.length>3&&!_nameStopWords.has(w));
+    const overlap=words.filter(w=>cwords.includes(w)).length;
+    if(!overlap) continue;
+    const score=overlap/Math.max(words.length,cwords.length);
+    if(score>bestScore&&score>=0.35){bestScore=score;bestId=cid;}
+  }
+  return bestId;
 }
 
 // Strip trailing Russian vowels/soft-sign to normalize declension:
@@ -1545,7 +1557,7 @@ function showAllCities(){localStorage.removeItem(HIDDEN_CITIES_KEY);scheduleSave
 
 function reloadData(){
   if(refreshTimer) clearInterval(refreshTimer);
-  sessionStorage.removeItem('inv_sales_v5');
+  sessionStorage.removeItem('inv_sales_v6');
   salesData=undefined;salesLoading=false;stores=[];products={};sections={};stock={};
   show('loading');document.getElementById('progress').style.width='0';loadAll();
 }
@@ -1666,8 +1678,7 @@ async function runCrmDiagnostic() {
           const byId=pid!=='0'&&stock[pid]!==undefined;
           const catalogById=byId?products[pid]?.name:'';
           const plow=pname.toLowerCase().trim();
-          let byNameId=productByNameDiag.get(plow)||'';
-          if(!byNameId){const pre=plow.slice(0,20);for(const[n,id]of productByNameDiag){if(n.startsWith(pre)||plow.startsWith(n.slice(0,20))){byNameId=id;break;}}}
+          let byNameId=productByNameDiag.get(plow)||matchProductByWords(plow,productByNameDiag)||'';
           const catalogByName=byNameId?products[byNameId]?.name:'';
           let status='';
           if(byId){status=`✅ ID совпадает: <i>${esc((catalogById||pid).slice(0,35))}</i>`;}
