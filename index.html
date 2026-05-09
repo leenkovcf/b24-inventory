@@ -450,6 +450,23 @@ tbody tr:hover .hide-btn{display:inline}
           </div>
         </div>
 
+        <!-- CRM Pipeline Filter -->
+        <div class="admin-section">
+          <div class="admin-section-header">
+            <span class="admin-section-title"><i class="bi bi-funnel"></i> Фильтр воронок CRM
+              <span class="help-tip" data-tip="Воронка «Маркетплейсы» не списывает товары со склада — исключите её из аналитики продаж. ID воронок видно в диагностике ниже.">?</span>
+            </span>
+          </div>
+          <div style="padding:10px 15px">
+            <label class="form-label" style="font-size:12px">Исключить воронки из аналитики продаж (ID через запятую):</label>
+            <div style="display:flex;gap:8px;margin-top:4px">
+              <input type="text" id="excl-cat-input" class="form-input" placeholder="напр. 5" style="flex:1;font-size:13px">
+              <button class="btn-sm" onclick="saveExclCat()">Сохранить</button>
+            </div>
+            <div class="form-hint" style="margin-top:4px">Запустите диагностику ниже — там видны ID и названия всех воронок.</div>
+          </div>
+        </div>
+
         <!-- CRM Diagnostic -->
         <div class="admin-section">
           <div class="admin-section-header">
@@ -476,6 +493,7 @@ const SKIP_STORES     = ['Склад производства', 'В пути'];
 const HIDDEN_PRODS_KEY  = 'inv_hidden_prods_v2';
 const HIDDEN_CITIES_KEY = 'inv_hidden_cities_v2';
 const WEBHOOK_KEY     = 'inv_webhook_v1';
+const EXCL_CAT_KEY    = 'inv_excl_cat_v1';
 const ROLE_KEY        = 'inv_role_v1';
 const MY_CITIES_KEY   = 'inv_my_cities_v1';
 const PROFILES_KEY    = 'inv_profiles_v1';
@@ -749,7 +767,7 @@ let salesStatus='';
 let salesDealsTotal=0, salesDealsMatched=0, salesMatchRate=0;
 async function loadSalesData() {
   if (salesLoading) return;
-  const cached = sessionStorage.getItem('inv_sales_v6');
+  const cached = sessionStorage.getItem('inv_sales_v7');
   if (cached) {
     try { salesData=JSON.parse(cached); if(currentTab==='analytics')renderAnalytics(); return; } catch(e){}
   }
@@ -762,8 +780,15 @@ async function loadSalesData() {
     const dateStr = since.toISOString().slice(0,10);
 
     const MAX_DEALS = 5000; // cap to avoid eternal loading at 28k+ deals
+    // Build category exclusion filter (e.g. exclude Маркетплейсы pipeline)
+    const exclCats=(localStorage.getItem(EXCL_CAT_KEY)||'').split(',').map(s=>s.trim()).filter(Boolean);
+    const catFilterObj={};
+    exclCats.forEach((id,i)=>{catFilterObj['filter[!CATEGORY_ID]['+i+']']=id;});
+    const catParamStr=exclCats.map((id,i)=>`&filter%5B!CATEGORY_ID%5D%5B${i}%5D=${encodeURIComponent(id)}`).join('');
+
     const firstResp = await apiGet(WEBHOOK,'crm.deal.list',{
       'filter[STAGE_SEMANTIC_ID]':'S','filter[>=CLOSEDATE]':dateStr,
+      ...catFilterObj,
       'select[0]':'ID','select[1]':'UF_CRM_SHOP',
       'order[CLOSEDATE]':'DESC', start:0
     });
@@ -781,7 +806,7 @@ async function loadSalesData() {
       for(let s=50;s<toLoad;s+=50) starts.push(s);
       for(let i=0;i<starts.length;i+=49){
         const chunk=starts.slice(i,i+49); const cmds={};
-        chunk.forEach((s,idx)=>{cmds['r'+idx]='crm.deal.list?filter[STAGE_SEMANTIC_ID]=S&filter[%3E%3DCLOSEDATE]='+dateStr+'&select[0]=ID&select[1]=UF_CRM_SHOP&order[CLOSEDATE]=DESC&start='+s;});
+        chunk.forEach((s,idx)=>{cmds['r'+idx]='crm.deal.list?filter[STAGE_SEMANTIC_ID]=S&filter[%3E%3DCLOSEDATE]='+dateStr+'&select[0]=ID&select[1]=UF_CRM_SHOP&order[CLOSEDATE]=DESC'+catParamStr+'&start='+s;});
         const res=await apiBatch(cmds);
         if(res) Object.values(res).forEach(item=>deals.push(...extractArrItem(item)));
       }
@@ -789,7 +814,7 @@ async function loadSalesData() {
     if(deals.length > MAX_DEALS) deals.length = MAX_DEALS;
 
     salesData = {};
-    if (!deals.length) { sessionStorage.setItem('inv_sales_v6',JSON.stringify(salesData)); salesLoading=false; if(currentTab==='analytics')renderAnalytics(); return; }
+    if (!deals.length) { sessionStorage.setItem('inv_sales_v7',JSON.stringify(salesData)); salesLoading=false; if(currentTab==='analytics')renderAnalytics(); return; }
 
     // '__ALL__' = company-wide bucket when UF_CRM_SHOP is not filled
     const GLOBAL_STORE='__ALL__';
@@ -852,7 +877,7 @@ async function loadSalesData() {
         });
       });
     }
-    sessionStorage.setItem('inv_sales_v6',JSON.stringify(salesData));
+    sessionStorage.setItem('inv_sales_v7',JSON.stringify(salesData));
   } catch(e) {
     console.warn('CRM unavailable:',e.message);
     salesData=null;
@@ -889,15 +914,18 @@ function resolveShop(val) {
   if(!str||str==='0') return null;
   // 1. Direct numeric store ID match
   if(stores.some(s=>String(s.id)===str)) return str;
-  const lower=str.toLowerCase();
-  // 2. Exact title or cityName match
+  // 2. "Калининград [30]" — Bitrix24 linked entity display format
+  const bracketId=str.match(/\[(\d+)\]$/)?.[1];
+  if(bracketId&&stores.some(s=>String(s.id)===bracketId)) return bracketId;
+  const lower=str.replace(/\s*\[\d+\]\s*$/,'').toLowerCase();
+  // 3. Exact title or cityName match
   let s=stores.find(s=>s.title.toLowerCase()===lower||cityName(s.title).toLowerCase()===lower);
   if(s) return String(s.id);
-  // 3. Declension-normalized match (Москва↔Москве, Курган↔Кургане, etc.)
+  // 4. Declension-normalized match (Москва↔Москве, Курган↔Кургане, etc.)
   const nv=normCity(lower);
   s=stores.find(s=>normCity(cityName(s.title))===nv);
   if(s) return String(s.id);
-  // 4. Prefix match: "Москва" in "Москве на Маршала Бирюзова"
+  // 5. Prefix match: "Москва" in "Москве на Маршала Бирюзова"
   s=stores.find(s=>{const nc=normCity(cityName(s.title));return nc.startsWith(nv)||nv.startsWith(nc);});
   if(s) return String(s.id);
   return null;
@@ -1557,7 +1585,7 @@ function showAllCities(){localStorage.removeItem(HIDDEN_CITIES_KEY);scheduleSave
 
 function reloadData(){
   if(refreshTimer) clearInterval(refreshTimer);
-  sessionStorage.removeItem('inv_sales_v6');
+  sessionStorage.removeItem('inv_sales_v7');
   salesData=undefined;salesLoading=false;stores=[];products={};sections={};stock={};
   show('loading');document.getElementById('progress').style.width='0';loadAll();
 }
@@ -1615,15 +1643,25 @@ function show(id){['setup','loading','app'].forEach(s=>{document.getElementById(
 async function runCrmDiagnostic() {
   const el = document.getElementById('diag-output');
   el.innerHTML = '<div style="display:flex;align-items:center;gap:8px"><div class="spinner"></div> Загружаем данные...</div>';
+  // Pre-fill excl cat input from saved value
+  const exclInp=document.getElementById('excl-cat-input');
+  if(exclInp&&!exclInp.value) exclInp.value=localStorage.getItem(EXCL_CAT_KEY)||'';
   try {
     const since = new Date();
     since.setDate(since.getDate()-90);
-    const resp = await apiGet(WEBHOOK,'crm.deal.list',{
-      'filter[STAGE_SEMANTIC_ID]':'S',
-      'filter[>=CLOSEDATE]':since.toISOString().slice(0,10),
-      'select[0]':'*','select[1]':'UF_*',
-      'order[CLOSEDATE]':'DESC', start:0
-    });
+    // Fetch pipeline list + deals in parallel
+    const [resp, catsResp] = await Promise.all([
+      apiGet(WEBHOOK,'crm.deal.list',{
+        'filter[STAGE_SEMANTIC_ID]':'S',
+        'filter[>=CLOSEDATE]':since.toISOString().slice(0,10),
+        'select[0]':'*','select[1]':'UF_*',
+        'order[CLOSEDATE]':'DESC', start:0
+      }),
+      apiGet(WEBHOOK,'crm.deal.category.list',{})
+    ]);
+    // Build category ID→name map
+    const catsMap=new Map([['0','Общая воронка']]);
+    extractArr(catsResp).forEach(c=>catsMap.set(String(c.ID||c.id),c.NAME||c.name||'—'));
     const deals = extractArr(resp).slice(0,5);
     if(!deals.length){el.innerHTML='<p>Нет закрытых сделок за 90 дней с нужными данными.</p>';return;}
 
@@ -1657,19 +1695,31 @@ async function runCrmDiagnostic() {
     }
     html+='</div>';
 
+    // Pipeline list
+    const exclSaved=localStorage.getItem(EXCL_CAT_KEY)||'';
+    html+=`<b>Воронки CRM (crm.deal.category.list):</b><br>`;
+    html+='<table class="a-table" style="font-size:11px;margin-bottom:12px"><thead><tr><th>ID</th><th>Название</th><th>Статус</th></tr></thead><tbody>';
+    catsMap.forEach((name,id)=>{
+      const excluded=exclSaved.split(',').map(s=>s.trim()).includes(id);
+      html+=`<tr><td style="font-family:monospace;font-weight:bold">${esc(id)}</td><td>${esc(name)}</td><td>${excluded?'<span style="color:#dc2626">⛔ исключена</span>':'<span style="color:#16a34a">✓ включена</span>'}</td></tr>`;
+    });
+    html+='</tbody></table>';
+
     // Build name lookup for diagnostic
     const productByNameDiag=new Map();
     Object.values(products).filter(p=>p.iblockId==MAIN_IBLOCK_ID).forEach(p=>{productByNameDiag.set(p.name.toLowerCase().trim(),p.id);});
 
     html+='<b>Товары в последних 5 сделках:</b><br><br>';
     html+='<table class="a-table" style="font-size:11px;width:100%"><thead><tr>';
-    html+='<th>#Сделка</th><th>PRODUCT_ID</th><th>Название в сделке</th><th>Кол-во</th><th>→ Найден в каталоге?</th></tr></thead><tbody>';
+    html+='<th>#Сделка</th><th>Воронка</th><th>PRODUCT_ID</th><th>Название в сделке</th><th>Кол-во</th><th>→ Найден в каталоге?</th></tr></thead><tbody>';
 
     deals.forEach(d=>{
       const did=String(d.ID||d.id);
+      const catId=String(d.CATEGORY_ID||d.categoryId||'0');
+      const catName=catsMap.get(catId)||('ID '+catId);
       const rows=extractArrItem(rowsRes?.['d'+did]||[]);
       if(!rows.length){
-        html+=`<tr><td>#${did}</td><td colspan="4" style="color:var(--muted);font-style:italic">Нет товаров в сделке</td></tr>`;
+        html+=`<tr><td>#${did}</td><td colspan="5" style="color:var(--muted);font-style:italic">Нет товаров в сделке</td></tr>`;
       } else {
         rows.forEach((row,ri)=>{
           const pid=String(row.PRODUCT_ID||row.productId||'0');
@@ -1684,7 +1734,7 @@ async function runCrmDiagnostic() {
           if(byId){status=`✅ ID совпадает: <i>${esc((catalogById||pid).slice(0,35))}</i>`;}
           else if(byNameId){status=`🔶 по имени: <i>${esc(catalogByName.slice(0,35))}</i>`;}
           else{status=`❌ не найден`;}
-          if(ri===0)html+=`<tr><td rowspan="${rows.length}">#${did}<br><small>${(d.CLOSEDATE||'').slice(0,10)}</small></td>`;
+          if(ri===0)html+=`<tr><td rowspan="${rows.length}">#${did}<br><small>${(d.CLOSEDATE||'').slice(0,10)}</small></td><td rowspan="${rows.length}" style="font-size:10px">${esc(catName)}</td>`;
           else html+=`<tr>`;
           html+=`<td style="font-family:monospace">${esc(pid)}</td>`;
           html+=`<td title="${esc(pname)}">${esc(pname.length>45?pname.slice(0,45)+'…':pname)}</td>`;
@@ -1710,6 +1760,14 @@ async function runCrmDiagnostic() {
   } catch(e) {
     el.innerHTML=`<p style="color:#dc2626">Ошибка: ${esc(e.message)}</p>`;
   }
+}
+function saveExclCat(){
+  const val=document.getElementById('excl-cat-input').value.trim();
+  localStorage.setItem(EXCL_CAT_KEY,val);
+  sessionStorage.removeItem('inv_sales_v7');
+  salesData=undefined;salesLoading=false;
+  alert(val?`Исключены воронки: ${val}. Данные продаж будут перезагружены.`:'Фильтр сброшен.');
+  if(currentTab==='analytics')loadSalesData();
 }
 function setStatus(m){document.getElementById('load-status').textContent=m;}
 function setProgress(p){document.getElementById('progress').style.width=Math.round(p)+'%';}
