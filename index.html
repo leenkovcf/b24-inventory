@@ -40,7 +40,7 @@ body{font-family:-apple-system,Arial,sans-serif;font-size:13px;background:var(--
 
 /* PROFILE MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:none;align-items:center;justify-content:center}
-.modal-card{background:var(--surface);border-radius:12px;padding:28px;width:540px;max-width:95vw;max-height:85vh;overflow-y:auto}
+.modal-card{background:var(--surface);border-radius:12px;padding:28px;width:560px;max-width:95vw;max-height:85vh;overflow-y:auto}
 .modal-card h3{font-size:17px;color:var(--navy);margin-bottom:18px}
 .form-group{margin-bottom:14px}
 .pm-roles{display:flex;flex-direction:column;gap:8px;margin-top:6px}
@@ -54,10 +54,15 @@ body{font-family:-apple-system,Arial,sans-serif;font-size:13px;background:var(--
 .modal-actions{display:flex;gap:8px;margin-top:18px}
 .profile-row{display:flex;align-items:center;padding:10px 15px;gap:10px;border-bottom:1px solid #f0f4f8}
 .profile-row:last-child{border-bottom:none}
-.profile-name{font-weight:600;font-size:13px}
+.profile-info{flex:1;min-width:0}
+.profile-name{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .profile-meta{font-size:11px;color:var(--muted);margin-top:2px}
-.profile-actions{display:flex;gap:5px;margin-left:auto;flex-shrink:0}
-.profile-note{padding:10px 15px 12px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);line-height:1.5}
+.profile-actions{display:flex;gap:5px;flex-shrink:0}
+.profile-note{padding:10px 15px 12px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);line-height:1.6}
+
+/* HELP TOOLTIP */
+.help-tip{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#e2e8f0;color:#64748b;font-size:10px;font-weight:700;cursor:help;vertical-align:middle;margin-left:4px;flex-shrink:0}
+#tip-box{position:fixed;z-index:9998;background:#1e293b;color:#fff;border-radius:8px;padding:10px 14px;font-size:12px;font-weight:400;max-width:320px;line-height:1.6;pointer-events:none;display:none;box-shadow:0 8px 24px rgba(0,0,0,.25);white-space:pre-wrap}
 
 /* LOADING */
 #loading{display:none;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:14px}
@@ -83,6 +88,7 @@ body{font-family:-apple-system,Arial,sans-serif;font-size:13px;background:var(--
 .icon-btn{background:rgba(255,255,255,.12);border:none;color:#fff;width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:15px;transition:background .2s;display:flex;align-items:center;justify-content:center}
 .icon-btn:hover{background:rgba(255,255,255,.22)}
 .role-badge{font-size:11px;padding:2px 8px;border-radius:12px;background:rgba(255,255,255,.15);color:rgba(255,255,255,.8)}
+.sync-badge{font-size:10px;padding:2px 7px;border-radius:10px;background:rgba(245,158,11,.25);color:#fde68a;display:none}
 
 /* TAB CONTENT */
 .tab-content{display:none;flex:1;flex-direction:column;overflow:hidden}
@@ -185,6 +191,7 @@ tbody tr:hover .hide-btn{display:inline}
 .a-table .val{text-align:right;font-weight:600}
 .a-table .val.bad{color:#dc2626}
 .a-table .val.good{color:#16a34a}
+.a-table .val.warn{color:#d97706}
 .abc-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;font-size:11px;font-weight:700;flex-shrink:0}
 .abc-A{background:#dcfce7;color:#166534}
 .abc-B{background:#fef9c3;color:#854d0e}
@@ -193,7 +200,7 @@ tbody tr:hover .hide-btn{display:inline}
 @media(max-width:800px){.charts-row{grid-template-columns:1fr}}
 .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
 .chart-body{padding:12px;position:relative}
-.chart-body.bar-h{height:340px}
+.chart-body.bar-h{height:360px}
 .chart-body.donut-h{height:200px;display:flex;align-items:center;justify-content:center}
 .city-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;padding:14px}
 .city-card{border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:3px}
@@ -205,6 +212,13 @@ tbody tr:hover .hide-btn{display:inline}
 .city-card-sub{font-size:10px;opacity:.75}
 .sales-spinner{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;padding:16px}
 .sales-spinner .spinner{width:20px;height:20px;border-width:3px}
+
+/* RUNNING OUT TABLE */
+.runout-filters{display:flex;align-items:center;gap:10px;padding:10px 15px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.days-badge{display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:22px;border-radius:11px;font-size:11px;font-weight:700;padding:0 8px}
+.days-urgent{background:#fee2e2;color:#991b1b}
+.days-warn{background:#fef9c3;color:#92400e}
+.days-ok{background:#dcfce7;color:#166534}
 
 /* ADMIN */
 .admin-wrap{flex:1;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:18px}
@@ -236,24 +250,21 @@ tbody tr:hover .hide-btn{display:inline}
 </head>
 <body>
 
+<!-- ── TOOLTIP BOX ─────────────────────────────────────────── -->
+<div id="tip-box"></div>
+
 <!-- ── SETUP ──────────────────────────────────────────────── -->
 <div id="setup">
   <div class="setup-card">
     <h2><i class="bi bi-boxes"></i> Складская аналитика</h2>
-    <p>Укажите URL входящего вебхука Битрикс24.<br>Он сохранится в браузере и больше не потребуется.</p>
-
-    <!-- shown when role pre-configured via access URL -->
+    <p>Укажите URL входящего вебхука Битрикс24.<br>Он сохранится в браузере — больше не потребуется.</p>
     <div id="profile-notice" class="profile-notice" style="display:none">
       <i class="bi bi-person-check-fill"></i>
-      <span>Профиль: <strong id="profile-notice-name"></strong></span>
+      <span>Профиль: <strong id="profile-notice-name"></strong>. Введите вебхук для подключения.</span>
     </div>
-
     <label class="form-label">URL вебхука</label>
-    <input class="form-input" type="text" id="webhook-input"
-      placeholder="https://b24.example.ru/rest/1/xxxxxxxx/">
+    <input class="form-input" type="text" id="webhook-input" placeholder="https://b24.example.ru/rest/1/xxxxxxxx/">
     <div class="form-hint">Настройки → Разработчикам → Входящий вебхук &nbsp;·&nbsp; Права: Торговый каталог + CRM</div>
-
-    <!-- role selection — hidden when profile is pre-configured -->
     <div id="role-section">
       <label class="form-label">Ваша роль</label>
       <div class="role-grid">
@@ -267,7 +278,6 @@ tbody tr:hover .hide-btn{display:inline}
           <div><div class="role-name">Оператор КЦ</div><div class="role-desc">Только назначенные города</div></div></label>
       </div>
     </div>
-
     <button class="btn-submit" onclick="saveWebhook()">Подключиться</button>
     <div class="setup-error" id="setup-error"></div>
   </div>
@@ -284,12 +294,12 @@ tbody tr:hover .hide-btn{display:inline}
     <div class="form-group">
       <label class="form-label">Роль</label>
       <div class="pm-roles">
-        <label class="pm-role-opt"><input type="radio" name="pm-role" value="regional" checked> Региональный руководитель</label>
-        <label class="pm-role-opt"><input type="radio" name="pm-role" value="operator"> Оператор КЦ (только просмотр)</label>
+        <label class="pm-role-opt"><input type="radio" name="pm-role" value="regional" checked> Региональный руководитель — видит свои города, аналитику</label>
+        <label class="pm-role-opt"><input type="radio" name="pm-role" value="operator"> Оператор КЦ — только просмотр остатков</label>
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">Города (не выбрано = все города)</label>
+      <label class="form-label">Города (не выбрано = все)</label>
       <div class="pm-city-header">
         <button class="dd-hbtn" onclick="pmSelectAll(true)">Выбрать все</button>
         <button class="dd-hbtn" onclick="pmSelectAll(false)">Снять все</button>
@@ -312,24 +322,18 @@ tbody tr:hover .hide-btn{display:inline}
 
 <!-- ── APP ───────────────────────────────────────────────── -->
 <div id="app">
-
   <header class="app-header">
     <div class="app-brand"><i class="bi bi-boxes"></i> Склад</div>
     <nav class="tabs">
-      <button class="tab-btn active" onclick="setTab('stock',this)">
-        <i class="bi bi-table"></i> Остатки
-      </button>
-      <button class="tab-btn" onclick="setTab('analytics',this)">
-        <i class="bi bi-bar-chart-line"></i> Аналитика
-      </button>
-      <button class="tab-btn" id="tab-admin-btn" onclick="setTab('admin',this)">
-        <i class="bi bi-sliders"></i> Управление
-      </button>
+      <button class="tab-btn active" onclick="setTab('stock',this)"><i class="bi bi-table"></i> Остатки</button>
+      <button class="tab-btn" onclick="setTab('analytics',this)"><i class="bi bi-bar-chart-line"></i> Аналитика</button>
+      <button class="tab-btn" id="tab-admin-btn" onclick="setTab('admin',this)"><i class="bi bi-sliders"></i> Управление</button>
     </nav>
     <div class="header-actions">
       <span id="last-update"></span>
       <span id="refresh-cd"></span>
       <span class="role-badge" id="role-badge"></span>
+      <span class="sync-badge" id="sync-badge">↑ сохранение...</span>
       <button class="icon-btn" onclick="reloadData()" title="Обновить данные"><i class="bi bi-arrow-clockwise"></i></button>
       <button class="icon-btn" onclick="resetSettings()" title="Настройки"><i class="bi bi-gear"></i></button>
     </div>
@@ -347,7 +351,6 @@ tbody tr:hover .hide-btn{display:inline}
           <i class="bi bi-geo-alt search-icon"></i>
           <input class="search-box" type="text" id="q-city" placeholder="Поиск по городу" oninput="applyFilters()">
         </div>
-        <!-- Availability dropdown -->
         <div class="dd-wrap" id="avail-dd">
           <button class="dd-btn" onclick="toggleDD('avail-dd')">
             <i class="bi bi-funnel"></i><span id="avail-label">Наличие</span>
@@ -359,7 +362,6 @@ tbody tr:hover .hide-btn{display:inline}
             <label class="dd-item"><input type="checkbox" id="av-zero"         onchange="onAvailChange()"><i class="bi bi-x-circle" style="color:#ef4444"></i> Нет (0)</label>
           </div>
         </div>
-        <!-- Category dropdown -->
         <div class="dd-wrap" id="cat-dd">
           <button class="dd-btn" onclick="toggleDD('cat-dd')">
             <i class="bi bi-tag"></i><span id="cat-label">Категории</span>
@@ -373,14 +375,9 @@ tbody tr:hover .hide-btn{display:inline}
             <div class="dd-items" id="cat-dd-items"></div>
           </div>
         </div>
-        <button class="btn" id="btn-hidden" onclick="toggleShowHidden()">
-          <i class="bi bi-eye-slash"></i> Скрытые
-        </button>
-        <!-- Excel button pushed to far right -->
+        <button class="btn" id="btn-hidden" onclick="toggleShowHidden()"><i class="bi bi-eye-slash"></i> Скрытые</button>
         <div class="filter-spacer"></div>
-        <button class="btn" onclick="exportCSV()" title="Экспорт в Excel CSV">
-          <i class="bi bi-file-earmark-arrow-down"></i> Excel
-        </button>
+        <button class="btn" onclick="exportCSV()" title="Экспорт в Excel CSV"><i class="bi bi-file-earmark-arrow-down"></i> Excel</button>
       </div>
     </div>
     <div class="table-wrap" id="table-wrap">
@@ -391,9 +388,7 @@ tbody tr:hover .hide-btn{display:inline}
       <span class="legend"><span class="dot dot-ok"></span>В наличии (&gt;5)</span>
       <span class="legend"><span class="dot dot-low"></span>Мало (1–5)</span>
       <span class="legend"><span class="dot dot-zero"></span>Нет (0)</span>
-      <span id="stat-products"></span>
-      <span id="stat-stores"></span>
-      <span id="stat-zeros"></span>
+      <span id="stat-products"></span><span id="stat-stores"></span><span id="stat-zeros"></span>
     </div>
   </div>
 
@@ -408,7 +403,6 @@ tbody tr:hover .hide-btn{display:inline}
   <div id="tab-admin" class="tab-content">
     <div class="admin-wrap">
       <div class="admin-grid">
-        <!-- Products with category filter -->
         <div class="admin-section">
           <div class="admin-section-header">
             <span class="admin-section-title"><i class="bi bi-box-seam"></i> Товары</span>
@@ -425,7 +419,6 @@ tbody tr:hover .hide-btn{display:inline}
             <button class="btn-sm danger" onclick="hideAllProducts()">Скрыть все</button>
           </div>
         </div>
-        <!-- Cities -->
         <div class="admin-section">
           <div class="admin-section-header">
             <span class="admin-section-title"><i class="bi bi-geo-alt"></i> Города / Склады</span>
@@ -442,22 +435,23 @@ tbody tr:hover .hide-btn{display:inline}
         </div>
       </div>
 
-      <!-- Access profiles (admin/director only) -->
+      <!-- Profiles (admin/director only) -->
       <div id="profiles-section" style="display:none">
         <div class="admin-section">
           <div class="admin-section-header">
-            <span class="admin-section-title"><i class="bi bi-people"></i> Профили доступа</span>
+            <span class="admin-section-title"><i class="bi bi-people"></i> Профили доступа
+              <span class="help-tip" data-tip="Создайте профиль для регионального менеджера: укажите его роль и города. Нажмите «Ссылка» — ссылка уже содержит вебхук, настройки роли и городов. Менеджеру достаточно открыть ссылку в браузере — приложение запустится автоматически без какой-либо настройки.">?</span>
+            </span>
             <button class="btn-sm" onclick="openProfileModal(null)"><i class="bi bi-plus-lg"></i> Добавить</button>
           </div>
           <div id="profiles-list"></div>
           <div class="profile-note">
-            Создайте профиль для региональных менеджеров. Назначьте им роль и города — вы получите ссылку, которую можно отправить сотруднику. При переходе по ссылке его роль и города будут настроены автоматически.
+            Изменения в разделах «Товары» и «Города» (<strong>скрыть/показать</strong>) автоматически сохраняются в Битрикс24 и применяются для всех пользователей при следующей загрузке приложения.
           </div>
         </div>
       </div>
     </div>
   </div>
-
 </div><!-- /app -->
 
 <script>
@@ -474,8 +468,11 @@ const ROLE_KEY        = 'inv_role_v1';
 const MY_CITIES_KEY   = 'inv_my_cities_v1';
 const PROFILES_KEY    = 'inv_profiles_v1';
 const PROFILE_NAME_KEY = 'inv_profile_name_v1';
+const OPT_MODULE      = 'inv_warehouse_v2';
+const OPT_KEY         = 'shared_cfg';
 const REFRESH_SEC     = 600;
 const SALES_DAYS      = 90;
+const RUNOUT_DAYS     = 30; // "soon running out" threshold
 
 // ================================================================
 // STATE
@@ -485,7 +482,7 @@ let stores       = [];
 let products     = {};
 let sections     = {};
 let stock        = {};
-let salesData    = undefined; // undefined=not started, null=failed(no CRM), {}=empty, {pid:{sid:qty}}=ok
+let salesData    = undefined;
 let salesLoading = false;
 let showHidden   = false;
 let selectedAvail = new Set(['ok', 'low']);
@@ -501,21 +498,44 @@ let refreshTimer = null;
 let refreshCountdown = 0;
 let chartBar     = null;
 let chartDoughnut = null;
+let saveTimer    = null;
 
 // ================================================================
-// STARTUP — read ?access= URL param, then init
+// TOOLTIP
+// ================================================================
+;(function initTooltip() {
+  const box = document.getElementById('tip-box');
+  document.addEventListener('mouseover', e => {
+    const el = e.target.closest('[data-tip]');
+    if (!el) { box.style.display = 'none'; return; }
+    box.textContent = el.dataset.tip;
+    box.style.display = 'block';
+    const r = el.getBoundingClientRect();
+    const left = Math.min(r.right + 8, window.innerWidth - 340);
+    const top  = Math.min(r.top, window.innerHeight - box.offsetHeight - 10);
+    box.style.left = left + 'px';
+    box.style.top  = top + 'px';
+  });
+  document.addEventListener('mouseout', e => {
+    if (!e.target.closest('[data-tip]')) box.style.display = 'none';
+  });
+})();
+
+// ================================================================
+// STARTUP
 // ================================================================
 (function init() {
   const params = new URLSearchParams(location.search);
   const accessCode = params.get('access');
   if (accessCode) {
     try {
-      const cfg = JSON.parse(atob(accessCode));
-      if (cfg.role) { userRole = cfg.role; localStorage.setItem(ROLE_KEY, cfg.role); }
+      const cfg = JSON.parse(atob(decodeURIComponent(accessCode)));
+      if (cfg.wh)     { WEBHOOK = cfg.wh; localStorage.setItem(WEBHOOK_KEY, cfg.wh); }
+      if (cfg.role)   { userRole = cfg.role; localStorage.setItem(ROLE_KEY, cfg.role); }
       if (cfg.cities) { myCities = new Set(cfg.cities); localStorage.setItem(MY_CITIES_KEY, JSON.stringify(cfg.cities)); }
-      if (cfg.name)  localStorage.setItem(PROFILE_NAME_KEY, cfg.name);
+      if (cfg.name)   localStorage.setItem(PROFILE_NAME_KEY, cfg.name);
       history.replaceState({}, '', location.pathname);
-    } catch(e) {}
+    } catch(e) { console.warn('access param parse error', e); }
   } else {
     userRole = localStorage.getItem(ROLE_KEY) || 'admin';
     myCities = getMyCitiesSet();
@@ -528,7 +548,7 @@ let chartDoughnut = null;
     document.getElementById('role-section').style.display = 'none';
   }
 
-  const saved = localStorage.getItem(WEBHOOK_KEY);
+  const saved = WEBHOOK || localStorage.getItem(WEBHOOK_KEY);
   if (saved) { WEBHOOK = saved; show('loading'); loadAll(); }
   else show('setup');
 })();
@@ -536,15 +556,14 @@ let chartDoughnut = null;
 async function saveWebhook() {
   const raw  = document.getElementById('webhook-input').value.trim();
   if (!raw) return;
-  const url = raw.endsWith('/') ? raw : raw + '/';
+  const url  = raw.endsWith('/') ? raw : raw + '/';
   const errEl = document.getElementById('setup-error');
   errEl.style.display = 'none';
   try {
-    const test = await apiGet(url, 'catalog.store.list', { 'select[0]': 'ID', start: 0 });
+    const test = await apiGet(url, 'catalog.store.list', {'select[0]':'ID', start:0});
     if (!test || test.result === undefined) throw new Error('Нет ответа от API');
     WEBHOOK = url;
     localStorage.setItem(WEBHOOK_KEY, url);
-    // Save role from form only if profile not pre-configured
     if (!localStorage.getItem(PROFILE_NAME_KEY)) {
       const role = document.querySelector('input[name="role"]:checked')?.value || 'admin';
       userRole = role;
@@ -565,32 +584,75 @@ function resetSettings() {
 }
 
 // ================================================================
+// CENTRALIZED CONFIG (Bitrix24 user.option — shared for all users)
+// ================================================================
+async function loadSharedConfig() {
+  try {
+    const resp = await apiGet(WEBHOOK, 'user.option.get', {
+      MODULE_ID: OPT_MODULE, options: [OPT_KEY]
+    });
+    const raw = resp?.result?.[OPT_KEY];
+    if (!raw) return false;
+    const cfg = JSON.parse(raw);
+    if (cfg.hiddenProds) {
+      const h = new Set(cfg.hiddenProds);
+      Object.values(products).forEach(p => { p.hidden = h.has(p.id); });
+      localStorage.setItem(HIDDEN_PRODS_KEY, JSON.stringify(cfg.hiddenProds));
+    }
+    if (cfg.hiddenCities) localStorage.setItem(HIDDEN_CITIES_KEY, JSON.stringify(cfg.hiddenCities));
+    if (cfg.profiles)     localStorage.setItem(PROFILES_KEY, JSON.stringify(cfg.profiles));
+    return true;
+  } catch(e) {
+    console.warn('loadSharedConfig:', e.message);
+    return false;
+  }
+}
+
+function scheduleSave() {
+  const badge = document.getElementById('sync-badge');
+  if (badge) badge.style.display = '';
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    try {
+      const cfg = {
+        hiddenProds:  [...getHiddenProdsSet()],
+        hiddenCities: [...getHiddenCitiesSet()],
+        profiles:     getProfiles(),
+        savedAt:      Date.now()
+      };
+      await apiGet(WEBHOOK, 'user.option.set', {
+        MODULE_ID: OPT_MODULE,
+        options: { [OPT_KEY]: JSON.stringify(cfg) }
+      });
+    } catch(e) { console.warn('saveSharedConfig:', e.message); }
+    if (badge) badge.style.display = 'none';
+  }, 2000);
+}
+
+// ================================================================
 // LOAD ALL DATA
 // ================================================================
 async function loadAll() {
   try {
     setStatus('Загружаем склады...');
-    const rawStores = await fetchAll('catalog.store.list', {
-      'select[0]':'ID','select[1]':'TITLE','select[2]':'ACTIVE','filter[ACTIVE]':'Y'
-    }, 0, 25);
+    const rawStores = await fetchAll('catalog.store.list',
+      {'select[0]':'ID','select[1]':'TITLE','select[2]':'ACTIVE','filter[ACTIVE]':'Y'}, 0, 25);
     stores = rawStores
       .filter(s => !SKIP_STORES.includes(s.title))
-      .sort((a, b) => cityName(a.title).localeCompare(cityName(b.title), 'ru'));
+      .sort((a,b) => cityName(a.title).localeCompare(cityName(b.title),'ru'));
 
     setStatus('Загружаем остатки...');
-    const rawStock = await fetchAll('catalog.storeproduct.list', {
-      'select[0]':'PRODUCT_ID','select[1]':'STORE_ID','select[2]':'AMOUNT'
-    }, 25, 70);
+    const rawStock = await fetchAll('catalog.storeproduct.list',
+      {'select[0]':'PRODUCT_ID','select[1]':'STORE_ID','select[2]':'AMOUNT'}, 25, 70);
 
     stock = {};
     const productIds = new Set();
     rawStock.forEach(r => {
-      const pid = String(r.productId !== undefined ? r.productId : r.PRODUCT_ID);
-      const sid = String(r.storeId   !== undefined ? r.storeId   : r.STORE_ID);
-      const amt = parseFloat(r.amount !== undefined ? r.amount   : r.AMOUNT) || 0;
-      if (!stock[pid]) stock[pid] = {};
-      stock[pid][sid] = amt;
-      productIds.add(pid);
+      const pid = String(r.productId!==undefined?r.productId:r.PRODUCT_ID);
+      const sid = String(r.storeId!==undefined?r.storeId:r.STORE_ID);
+      const amt = parseFloat(r.amount!==undefined?r.amount:r.AMOUNT)||0;
+      if (!stock[pid]) stock[pid]={};
+      stock[pid][sid]=amt; productIds.add(pid);
     });
 
     setStatus('Загружаем товары (' + productIds.size + ')...');
@@ -600,17 +662,17 @@ async function loadAll() {
     await loadSections();
 
     initSelectedCats();
-    setProgress(100);
+    setStatus('Загружаем настройки...');
+    await loadSharedConfig();
 
+    setProgress(100);
     applyRoleUI();
     show('app');
     document.getElementById('last-update').textContent = 'Обновлено: ' + new Date().toLocaleTimeString('ru-RU');
     renderCategoryDropdown();
     renderStock();
     startAutoRefresh();
-
-    // Load CRM sales data in background
-    loadSalesData();
+    loadSalesData(); // background
   } catch(e) {
     setStatus('Ошибка: ' + (e.message || JSON.stringify(e)));
     console.error(e);
@@ -618,170 +680,152 @@ async function loadAll() {
 }
 
 function applyRoleUI() {
-  const roleNames = { admin:'Администратор', director:'Директор', regional:'Рег. руководитель', operator:'Оператор КЦ' };
+  const roleNames = {admin:'Администратор',director:'Директор',regional:'Рег. руководитель',operator:'Оператор КЦ'};
   document.getElementById('role-badge').textContent = roleNames[userRole] || userRole;
-  const canManage = userRole === 'admin' || userRole === 'director';
-  if (!canManage) document.getElementById('tab-admin-btn').style.display = 'none';
-  if (canManage)  document.getElementById('profiles-section').style.display = '';
+  const canManage = userRole==='admin'||userRole==='director';
+  if (!canManage) document.getElementById('tab-admin-btn').style.display='none';
+  if (canManage)  document.getElementById('profiles-section').style.display='';
 }
 
 async function loadProducts(ids) {
   const hidden = getHiddenProdsSet();
-  for (let i = 0; i < ids.length; i += 49) {
-    const chunk = ids.slice(i, i + 49);
+  for (let i=0; i<ids.length; i+=49) {
+    const chunk = ids.slice(i,i+49);
     const cmds  = {};
-    chunk.forEach(id => { cmds['p' + id] = 'catalog.product.get?id=' + parseInt(id); });
+    chunk.forEach(id => { cmds['p'+id]='catalog.product.get?id='+parseInt(id); });
     const res = await apiBatch(cmds);
     if (res) {
       Object.values(res).forEach(raw => {
         const item = extractItem(raw);
-        if (!item || !item.id) return;
+        if (!item||!item.id) return;
         products[String(item.id)] = {
-          id: String(item.id), name: item.name || '(без названия)',
-          iblockId: item.iblockId, sectionId: String(item.iblockSectionId || ''),
+          id:String(item.id), name:item.name||'(без названия)',
+          iblockId:item.iblockId, sectionId:String(item.iblockSectionId||''),
           hidden: hidden.has(String(item.id))
         };
       });
     }
-    setProgress(70 + 20 * Math.min((i + 49) / ids.length, 1));
+    setProgress(70+20*Math.min((i+49)/ids.length,1));
   }
 }
 
 async function loadSections() {
-  const sectionIds = new Set(Object.values(products).map(p => p.sectionId).filter(Boolean));
-  if (!sectionIds.size) return;
-  const cmds = {};
-  [...sectionIds].forEach(id => { cmds['s' + id] = 'catalog.section.get?id=' + id; });
+  const ids = new Set(Object.values(products).map(p=>p.sectionId).filter(Boolean));
+  if (!ids.size) return;
+  const cmds={};
+  [...ids].forEach(id=>{cmds['s'+id]='catalog.section.get?id='+id;});
   try {
     const res = await apiBatch(cmds);
-    if (res) {
-      Object.values(res).forEach(raw => {
-        const item = extractItem(raw);
-        if (item && item.id && item.name) sections[String(item.id)] = item.name;
-      });
-    }
-  } catch(e) {}
+    if (res) Object.values(res).forEach(raw=>{
+      const item=extractItem(raw);
+      if(item&&item.id&&item.name) sections[String(item.id)]=item.name;
+    });
+  } catch(e){}
 }
 
 function initSelectedCats() {
   selectedCats = new Set(['']);
-  Object.entries(sections).forEach(([sid, name]) => {
+  Object.entries(sections).forEach(([sid,name])=>{
     if (!name.toLowerCase().includes('брак')) selectedCats.add(sid);
   });
 }
 
 // ================================================================
-// CRM SALES DATA (background, optional)
+// CRM SALES DATA (background)
 // ================================================================
 async function loadSalesData() {
   if (salesLoading) return;
-  // Try session cache first
-  const cached = sessionStorage.getItem('inv_sales_v1');
+  const cached = sessionStorage.getItem('inv_sales_v2');
   if (cached) {
-    try { salesData = JSON.parse(cached); if (currentTab === 'analytics') renderAnalytics(); return; } catch(e) {}
+    try { salesData=JSON.parse(cached); if(currentTab==='analytics')renderAnalytics(); return; } catch(e){}
   }
   salesLoading = true;
-  if (currentTab === 'analytics') renderAnalytics(); // show loading state
+  if (currentTab==='analytics') renderAnalytics();
   try {
     const since = new Date();
-    since.setDate(since.getDate() - SALES_DAYS);
-    const dateStr = since.toISOString().slice(0, 10);
+    since.setDate(since.getDate()-SALES_DAYS);
+    const dateStr = since.toISOString().slice(0,10);
 
-    // Fetch closed/won deals in last SALES_DAYS
-    const firstResp = await apiGet(WEBHOOK, 'crm.deal.list', {
-      'filter[STAGE_SEMANTIC_ID]': 'S',
-      'filter[>=CLOSEDATE]': dateStr,
-      'select[0]': 'ID', 'select[1]': 'UF_CRM_SHOP',
-      start: 0
+    const firstResp = await apiGet(WEBHOOK,'crm.deal.list',{
+      'filter[STAGE_SEMANTIC_ID]':'S','filter[>=CLOSEDATE]':dateStr,
+      'select[0]':'ID','select[1]':'UF_CRM_SHOP', start:0
     });
-    if (firstResp.error) { salesData = null; salesLoading = false; if (currentTab === 'analytics') renderAnalytics(); return; }
+    if (firstResp.error) { salesData=null; salesLoading=false; if(currentTab==='analytics')renderAnalytics(); return; }
 
     const deals = [...extractArr(firstResp)];
-    const total = Math.min(parseInt(firstResp.total) || 0, 500); // cap at 500 deals
-
-    if (total > 50) {
-      const starts = [];
-      for (let s = 50; s < total; s += 50) starts.push(s);
-      for (let i = 0; i < starts.length; i += 49) {
-        const chunk = starts.slice(i, i + 49);
-        const cmds = {};
-        chunk.forEach((s, idx) => { cmds['r' + idx] = 'crm.deal.list?filter[STAGE_SEMANTIC_ID]=S&filter[>=CLOSEDATE]=' + dateStr + '&select[0]=ID&select[1]=UF_CRM_SHOP&start=' + s; });
-        const res = await apiBatch(cmds);
-        if (res) Object.values(res).forEach(item => deals.push(...extractArrItem(item)));
+    const total = Math.min(parseInt(firstResp.total)||0, 500);
+    if (total>50) {
+      const starts=[];
+      for(let s=50;s<total;s+=50) starts.push(s);
+      for(let i=0;i<starts.length;i+=49){
+        const chunk=starts.slice(i,i+49); const cmds={};
+        chunk.forEach((s,idx)=>{cmds['r'+idx]='crm.deal.list?filter[STAGE_SEMANTIC_ID]=S&filter[>=CLOSEDATE]='+dateStr+'&select[0]=ID&select[1]=UF_CRM_SHOP&start='+s;});
+        const res=await apiBatch(cmds);
+        if(res) Object.values(res).forEach(item=>deals.push(...extractArrItem(item)));
       }
     }
 
     salesData = {};
-    if (!deals.length) { sessionStorage.setItem('inv_sales_v1', JSON.stringify(salesData)); salesLoading = false; if (currentTab === 'analytics') renderAnalytics(); return; }
+    if (!deals.length) { sessionStorage.setItem('inv_sales_v2',JSON.stringify(salesData)); salesLoading=false; if(currentTab==='analytics')renderAnalytics(); return; }
 
-    // Batch fetch product rows for each deal
-    for (let i = 0; i < deals.length; i += 49) {
-      const chunk = deals.slice(i, i + 49);
-      const cmds = {};
-      chunk.forEach(d => {
-        const id = d.ID || d.id;
-        cmds['d' + id] = 'crm.deal.productrows.get?id=' + id;
-      });
-      const res = await apiBatch(cmds);
-      if (res) {
-        Object.entries(res).forEach(([key, rawRows]) => {
-          const dealId = key.slice(1);
-          const deal = deals.find(d => String(d.ID || d.id) === dealId);
-          if (!deal) return;
-          const shopVal = deal.UF_CRM_SHOP || deal.ufCrmShop;
-          const storeId = resolveShop(shopVal);
-          if (!storeId) return;
-          const rows = extractArrItem(rawRows);
-          rows.forEach(row => {
-            const pid = String(row.PRODUCT_ID || row.productId || '');
-            const qty = parseFloat(row.QUANTITY || row.quantity) || 0;
-            if (!pid || !qty) return;
-            if (!salesData[pid]) salesData[pid] = {};
-            salesData[pid][storeId] = (salesData[pid][storeId] || 0) + qty;
+    for(let i=0;i<deals.length;i+=49){
+      const chunk=deals.slice(i,i+49); const cmds={};
+      chunk.forEach(d=>{const id=d.ID||d.id; cmds['d'+id]='crm.deal.productrows.get?id='+id;});
+      const res=await apiBatch(cmds);
+      if(res){
+        Object.entries(res).forEach(([key,rawRows])=>{
+          const dealId=key.slice(1);
+          const deal=deals.find(d=>String(d.ID||d.id)===dealId);
+          if(!deal) return;
+          const storeId=resolveShop(deal.UF_CRM_SHOP||deal.ufCrmShop);
+          if(!storeId) return;
+          const rows=extractArrItem(rawRows);
+          rows.forEach(row=>{
+            const pid=String(row.PRODUCT_ID||row.productId||'');
+            const qty=parseFloat(row.QUANTITY||row.quantity)||0;
+            if(!pid||!qty) return;
+            if(!salesData[pid]) salesData[pid]={};
+            salesData[pid][storeId]=(salesData[pid][storeId]||0)+qty;
           });
         });
       }
     }
-    sessionStorage.setItem('inv_sales_v1', JSON.stringify(salesData));
+    sessionStorage.setItem('inv_sales_v2',JSON.stringify(salesData));
   } catch(e) {
-    console.warn('CRM sales unavailable:', e.message);
-    salesData = null;
+    console.warn('CRM unavailable:',e.message);
+    salesData=null;
   }
-  salesLoading = false;
-  if (currentTab === 'analytics') renderAnalytics();
+  salesLoading=false;
+  if(currentTab==='analytics') renderAnalytics();
 }
 
-// Match UF_CRM_SHOP field value to a known store ID
 function resolveShop(val) {
-  if (!val) return null;
-  const str = String(val).trim();
-  if (!str || str === '0') return null;
-  // Direct store ID match
-  if (stores.some(s => String(s.id) === str)) return str;
-  // Title/city name match
-  const lower = str.toLowerCase();
-  const s = stores.find(s => s.title.toLowerCase() === lower || cityName(s.title).toLowerCase() === lower);
-  return s ? String(s.id) : null;
+  if(!val) return null;
+  const str=String(val).trim();
+  if(!str||str==='0') return null;
+  if(stores.some(s=>String(s.id)===str)) return str;
+  const lower=str.toLowerCase();
+  const s=stores.find(s=>s.title.toLowerCase()===lower||cityName(s.title).toLowerCase()===lower);
+  return s?String(s.id):null;
 }
 
 // ================================================================
-// PAGINATED FETCH WITH BATCH
+// FETCH WITH BATCH
 // ================================================================
-async function fetchAll(method, params, p0, p1) {
-  const first   = await apiGet(WEBHOOK, method, { ...params, start: 0 });
-  const results = [...extractArr(first)];
-  const total   = parseInt(first.total) || 0;
-  if (p1 > p0) setProgress(p0 + (p1 - p0) * .15);
-  if (total <= 50) { if (p1 > p0) setProgress(p1); return results; }
-  const starts = [];
-  for (let s = 50; s < total; s += 50) starts.push(s);
-  for (let i = 0; i < starts.length; i += 49) {
-    const chunk = starts.slice(i, i + 49);
-    const cmds  = {};
-    chunk.forEach((s, idx) => { cmds['r' + idx] = method + '?' + buildQS({ ...params, start: s }); });
-    const res = await apiBatch(cmds);
-    if (res) Object.values(res).forEach(item => results.push(...extractArrItem(item)));
-    if (p1 > p0) setProgress(p0 + (p1 - p0) * Math.min((i + 49) / starts.length, 1));
+async function fetchAll(method,params,p0,p1){
+  const first=await apiGet(WEBHOOK,method,{...params,start:0});
+  const results=[...extractArr(first)];
+  const total=parseInt(first.total)||0;
+  if(p1>p0) setProgress(p0+(p1-p0)*.15);
+  if(total<=50){if(p1>p0)setProgress(p1); return results;}
+  const starts=[];
+  for(let s=50;s<total;s+=50)starts.push(s);
+  for(let i=0;i<starts.length;i+=49){
+    const chunk=starts.slice(i,i+49); const cmds={};
+    chunk.forEach((s,idx)=>{cmds['r'+idx]=method+'?'+buildQS({...params,start:s});});
+    const res=await apiBatch(cmds);
+    if(res) Object.values(res).forEach(item=>results.push(...extractArrItem(item)));
+    if(p1>p0) setProgress(p0+(p1-p0)*Math.min((i+49)/starts.length,1));
   }
   return results;
 }
@@ -789,278 +833,324 @@ async function fetchAll(method, params, p0, p1) {
 // ================================================================
 // RENDER: STOCK TABLE
 // ================================================================
-function getVisStores(cityQ) {
-  const hiddenCities = getHiddenCitiesSet();
-  let vis = stores
-    .filter(s => !hiddenCities.has(String(s.id)))
-    .filter(s => !cityQ || cityName(s.title).toLowerCase().includes(cityQ));
-  if ((userRole === 'regional' || userRole === 'operator') && myCities.size > 0)
-    vis = vis.filter(s => myCities.has(String(s.id)));
+function getVisStores(cityQ){
+  const hc=getHiddenCitiesSet();
+  let vis=stores.filter(s=>!hc.has(String(s.id))).filter(s=>!cityQ||cityName(s.title).toLowerCase().includes(cityQ));
+  if((userRole==='regional'||userRole==='operator')&&myCities.size>0) vis=vis.filter(s=>myCities.has(String(s.id)));
   return vis;
 }
 
-function renderStock() {
-  const cityQ = (document.getElementById('q-city')?.value || '').toLowerCase().trim();
-  const prodQ = (document.getElementById('q-product')?.value || '').toLowerCase().trim();
-  const visStores = getVisStores(cityQ);
+function renderStock(){
+  const cityQ=(document.getElementById('q-city')?.value||'').toLowerCase().trim();
+  const prodQ=(document.getElementById('q-product')?.value||'').toLowerCase().trim();
+  const visStores=getVisStores(cityQ);
 
-  let visProducts = Object.values(products)
-    .filter(p => p.iblockId == MAIN_IBLOCK_ID)
-    .filter(p => !prodQ || p.name.toLowerCase().includes(prodQ))
-    .filter(p => selectedCats.has(p.sectionId || ''));
+  let visProducts=Object.values(products)
+    .filter(p=>p.iblockId==MAIN_IBLOCK_ID)
+    .filter(p=>!prodQ||p.name.toLowerCase().includes(prodQ))
+    .filter(p=>selectedCats.has(p.sectionId||''));
 
-  if (selectedAvail.size < 3) {
-    visProducts = visProducts.filter(p => {
-      const amounts = visStores.map(s => stock[p.id]?.[String(s.id)] ?? null).filter(a => a !== null);
-      if (!amounts.length) return selectedAvail.has('zero');
-      const max = Math.max(...amounts);
-      if (max === 0)        return selectedAvail.has('zero');
-      if (max <= LOW_STOCK) return selectedAvail.has('low');
+  if(selectedAvail.size<3){
+    visProducts=visProducts.filter(p=>{
+      const amts=visStores.map(s=>stock[p.id]?.[String(s.id)]??null).filter(a=>a!==null);
+      if(!amts.length) return selectedAvail.has('zero');
+      const max=Math.max(...amts);
+      if(max===0) return selectedAvail.has('zero');
+      if(max<=LOW_STOCK) return selectedAvail.has('low');
       return selectedAvail.has('ok');
     });
   }
 
-  if (sortStore && sortDir !== 0) {
-    const sid = String(sortStore);
-    visProducts = [...visProducts].sort((a, b) => {
-      const av = stock[a.id]?.[sid] ?? -1, bv = stock[b.id]?.[sid] ?? -1;
-      return sortDir === 1 ? bv - av : av - bv;
-    });
+  if(sortStore&&sortDir!==0){
+    const sid=String(sortStore);
+    visProducts=[...visProducts].sort((a,b)=>{const av=stock[a.id]?.[sid]??-1,bv=stock[b.id]?.[sid]??-1; return sortDir===1?bv-av:av-bv;});
   } else {
-    visProducts = visProducts.sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+    visProducts=visProducts.sort((a,b)=>a.name.localeCompare(b.name,'ru'));
   }
 
-  const tbl = document.getElementById('tbl'), noData = document.getElementById('no-data');
-  if (!visProducts.length || !visStores.length) {
-    tbl.style.display = 'none'; noData.style.display = 'block'; updateStats(0,0,0); return;
-  }
-  tbl.style.display = ''; noData.style.display = 'none';
+  const tbl=document.getElementById('tbl'),noData=document.getElementById('no-data');
+  if(!visProducts.length||!visStores.length){tbl.style.display='none';noData.style.display='block';updateStats(0,0,0);return;}
+  tbl.style.display='';noData.style.display='none';
 
-  let head = '<tr><th class="product-col">Товар</th>';
-  visStores.forEach(s => {
-    const sid = String(s.id), city = esc(cityName(s.title));
-    let cls = 'store-col', arrow = '';
-    if (sortStore === sid) { cls += sortDir === 1 ? ' s-desc' : ' s-asc'; arrow = sortDir === 1 ? ' ↓' : ' ↑'; }
-    head += `<th class="${cls}" onclick="sortByCity('${sid}')" title="${esc(s.title)}">${city}${arrow}</th>`;
+  let head='<tr><th class="product-col">Товар</th>';
+  visStores.forEach(s=>{
+    const sid=String(s.id),city=esc(cityName(s.title));
+    let cls='store-col',arrow='';
+    if(sortStore===sid){cls+=sortDir===1?' s-desc':' s-asc';arrow=sortDir===1?' ↓':' ↑';}
+    head+=`<th class="${cls}" onclick="sortByCity('${sid}')" title="${esc(s.title)}">${city}${arrow}</th>`;
   });
-  head += '<th class="total-col">Итого</th></tr>';
-  document.getElementById('tbl-head').innerHTML = head;
+  head+='<th class="total-col">Итого</th></tr>';
+  document.getElementById('tbl-head').innerHTML=head;
 
-  const canHide = userRole === 'admin' || userRole === 'director';
-  let zeros = 0, body = '';
-  visProducts.forEach(p => {
-    body += `<tr class="${p.hidden ? 'hidden-row' : ''}">`;
-    body += `<td class="product-col">${esc(p.name)}`;
-    if (canHide) {
-      body += ` <button class="hide-btn" onclick="toggleHideProd('${p.id}')" title="${p.hidden?'Показать':'Скрыть'}"><i class="bi ${p.hidden?'bi-eye':'bi-eye-slash'}"></i></button>`;
-    }
-    if (p.hidden) body += ' <span class="hidden-label">скрыт</span>';
-    body += '</td>';
-    let total = 0;
-    visStores.forEach(s => {
-      const sid = String(s.id), amt = stock[p.id]?.[sid] ?? null;
-      total += amt || 0;
-      let cls = 'amount-na', disp = '';
-      if (amt !== null) {
-        if (amt === 0)           { cls = 'amount-zero'; disp = '—'; zeros++; }
-        else if (amt <= LOW_STOCK) { cls = 'amount-low'; disp = amt; }
-        else                     { cls = 'amount-ok'; disp = amt; }
-      }
-      body += `<td class="${cls}" title="${esc(s.title)}: ${amt??'—'}">${disp}</td>`;
+  const canHide=userRole==='admin'||userRole==='director';
+  let zeros=0,body='';
+  visProducts.forEach(p=>{
+    body+=`<tr class="${p.hidden?'hidden-row':''}">`;
+    body+=`<td class="product-col">${esc(p.name)}`;
+    if(canHide) body+=` <button class="hide-btn" onclick="toggleHideProd('${p.id}')" title="${p.hidden?'Показать':'Скрыть'}"><i class="bi ${p.hidden?'bi-eye':'bi-eye-slash'}"></i></button>`;
+    if(p.hidden) body+=' <span class="hidden-label">скрыт</span>';
+    body+='</td>';
+    let total=0;
+    visStores.forEach(s=>{
+      const sid=String(s.id),amt=stock[p.id]?.[sid]??null;
+      total+=amt||0;
+      let cls='amount-na',disp='';
+      if(amt!==null){if(amt===0){cls='amount-zero';disp='—';zeros++;}else if(amt<=LOW_STOCK){cls='amount-low';disp=amt;}else{cls='amount-ok';disp=amt;}}
+      body+=`<td class="${cls}" title="${esc(s.title)}: ${amt??'—'}">${disp}</td>`;
     });
-    body += `<td class="total-col">${total}</td></tr>`;
+    body+=`<td class="total-col">${total}</td></tr>`;
   });
-
-  document.getElementById('tbl-body').innerHTML = body;
-  document.getElementById('table-wrap').classList.toggle('show-hidden', showHidden);
-  updateStats(visProducts.length, visStores.length, zeros);
+  document.getElementById('tbl-body').innerHTML=body;
+  document.getElementById('table-wrap').classList.toggle('show-hidden',showHidden);
+  updateStats(visProducts.length,visStores.length,zeros);
 }
 
 // ================================================================
 // RENDER: ANALYTICS
 // ================================================================
-function renderAnalytics() {
-  const visStores = getVisStores('');
-  const prods = Object.values(products).filter(p => p.iblockId == MAIN_IBLOCK_ID && !p.hidden);
-  const wrap  = document.getElementById('analytics-wrap');
+// Wrap long label into multiple lines for Chart.js
+function wrapLabel(text, maxLen=24){
+  const words=text.split(' ');
+  const lines=[]; let line='';
+  words.forEach(w=>{
+    if(line&&(line+' '+w).length>maxLen){lines.push(line);line=w;}
+    else line=line?line+' '+w:w;
+  });
+  if(line) lines.push(line);
+  return lines;
+}
 
-  // Stock KPIs (always available)
-  let totalUnits = 0, okCnt = 0, lowCnt = 0, zeroCnt = 0, totalPos = 0;
-  prods.forEach(p => visStores.forEach(s => {
-    const amt = stock[p.id]?.[String(s.id)] ?? null;
-    if (amt !== null) { totalPos++; totalUnits += amt; if (amt===0) zeroCnt++; else if(amt<=LOW_STOCK) lowCnt++; else okCnt++; }
+function renderAnalytics(){
+  const visStores=getVisStores('');
+  const prods=Object.values(products).filter(p=>p.iblockId==MAIN_IBLOCK_ID&&!p.hidden);
+  const wrap=document.getElementById('analytics-wrap');
+
+  let totalUnits=0,okCnt=0,lowCnt=0,zeroCnt=0,totalPos=0;
+  prods.forEach(p=>visStores.forEach(s=>{
+    const amt=stock[p.id]?.[String(s.id)]??null;
+    if(amt!==null){totalPos++;totalUnits+=amt;if(amt===0)zeroCnt++;else if(amt<=LOW_STOCK)lowCnt++;else okCnt++;}
   }));
-  const coverage = totalPos ? Math.round(okCnt / totalPos * 100) : 0;
+  const coverage=totalPos?Math.round(okCnt/totalPos*100):0;
 
-  // City stock data (always)
-  const cityStockData = visStores.map(s => {
-    let total = 0, zeros = 0, cnt = 0;
-    prods.forEach(p => { const a = stock[p.id]?.[String(s.id)]??null; if(a!==null){cnt++;total+=a;if(a===0)zeros++;} });
-    const zeroRate = cnt ? zeros/cnt : 0;
-    return { name: cityName(s.title), id: String(s.id), total, zeroRate, cls: zeroRate>.5?'bad':zeroRate>.25?'low':'ok' };
-  }).sort((a,b) => b.total - a.total);
+  const cityStockData=visStores.map(s=>{
+    let total=0,zeros=0,cnt=0;
+    prods.forEach(p=>{const a=stock[p.id]?.[String(s.id)]??null;if(a!==null){cnt++;total+=a;if(a===0)zeros++;}});
+    const zeroRate=cnt?zeros/cnt:0;
+    return{name:cityName(s.title),id:String(s.id),total,zeroRate,cls:zeroRate>.5?'bad':zeroRate>.25?'low':'ok'};
+  }).sort((a,b)=>b.total-a.total);
+
+  const zeroEverywhere=prods.filter(p=>{
+    const amts=visStores.map(s=>stock[p.id]?.[String(s.id)]??null).filter(a=>a!==null);
+    return amts.length>0&&amts.every(a=>a===0);
+  });
+  const criticalCities=visStores.filter(s=>{
+    const sid=String(s.id);
+    const amts=prods.map(p=>stock[p.id]?.[sid]??null).filter(a=>a!==null);
+    return amts.length>0&&amts.filter(a=>a===0).length/amts.length>0.5;
+  });
+
+  if(chartBar){chartBar.destroy();chartBar=null;}
+  if(chartDoughnut){chartDoughnut.destroy();chartDoughnut=null;}
 
   // Warnings
-  const zeroEverywhere = prods.filter(p => {
-    const amts = visStores.map(s => stock[p.id]?.[String(s.id)]??null).filter(a=>a!==null);
-    return amts.length>0 && amts.every(a=>a===0);
-  });
-  const criticalCities = visStores.filter(s => {
-    const sid = String(s.id);
-    const amts = prods.map(p => stock[p.id]?.[sid]??null).filter(a=>a!==null);
-    return amts.length>0 && amts.filter(a=>a===0).length/amts.length>0.5;
-  });
-
-  // Destroy old charts
-  if (chartBar)      { chartBar.destroy(); chartBar = null; }
-  if (chartDoughnut) { chartDoughnut.destroy(); chartDoughnut = null; }
-
-  // ── Warnings HTML ──────────────────────────────────────────
-  let warnHTML = '';
-  if (zeroEverywhere.length || criticalCities.length) {
-    warnHTML = '<div class="alerts-grid">';
-    if (zeroEverywhere.length) {
-      const items = zeroEverywhere.slice(0,8).map(p=>`<li>${esc(p.name)}</li>`).join('');
-      const more  = zeroEverywhere.length>8 ? `<li>...ещё ${zeroEverywhere.length-8}</li>` : '';
-      warnHTML += `<div class="alert-box danger"><div><div class="alert-title"><i class="bi bi-exclamation-triangle-fill"></i>Товары с нулём везде (${zeroEverywhere.length})</div><ul class="alert-list">${items}${more}</ul></div></div>`;
+  let warnHTML='';
+  if(zeroEverywhere.length||criticalCities.length){
+    warnHTML='<div class="alerts-grid">';
+    if(zeroEverywhere.length){
+      const items=zeroEverywhere.slice(0,8).map(p=>`<li>${esc(p.name)}</li>`).join('');
+      const more=zeroEverywhere.length>8?`<li>...ещё ${zeroEverywhere.length-8}</li>`:'';
+      warnHTML+=`<div class="alert-box danger"><div><div class="alert-title"><i class="bi bi-exclamation-triangle-fill"></i>Нулевой остаток везде (${zeroEverywhere.length} тов.)</div><ul class="alert-list">${items}${more}</ul></div></div>`;
     }
-    if (criticalCities.length) {
-      const items = criticalCities.slice(0,8).map(s=>`<li>${esc(cityName(s.title))}</li>`).join('');
-      const more  = criticalCities.length>8 ? `<li>...ещё ${criticalCities.length-8}</li>` : '';
-      warnHTML += `<div class="alert-box warn"><div><div class="alert-title"><i class="bi bi-geo-alt-fill"></i>Критический дефицит (${criticalCities.length} город.)</div><ul class="alert-list">${items}${more}</ul></div></div>`;
+    if(criticalCities.length){
+      const items=criticalCities.slice(0,8).map(s=>`<li>${esc(cityName(s.title))}</li>`).join('');
+      const more=criticalCities.length>8?`<li>...ещё ${criticalCities.length-8}</li>`:'';
+      warnHTML+=`<div class="alert-box warn"><div><div class="alert-title"><i class="bi bi-geo-alt-fill"></i>Критический дефицит (${criticalCities.length} гор.)</div><ul class="alert-list">${items}${more}</ul></div></div>`;
     }
-    warnHTML += '</div>';
+    warnHTML+='</div>';
   }
 
-  // ── Sales section ──────────────────────────────────────────
-  let salesHTML = '';
-  if (salesLoading) {
-    salesHTML = `<div class="a-table-wrap"><div class="a-table-title"><i class="bi bi-bar-chart-line"></i> Аналитика продаж</div>
-      <div class="sales-spinner"><div class="spinner"></div> Загружаем данные о продажах из CRM...</div></div>`;
-  } else if (salesData === null) {
-    salesHTML = `<div class="alert-box info"><i class="bi bi-info-circle-fill" style="font-size:20px;flex-shrink:0"></i>
-      <div><div class="alert-title">Данные о продажах недоступны</div>
-      <div style="font-size:12px;margin-top:4px">Добавьте право <strong>CRM</strong> к вашему вебхуку в Битрикс24 для ABC-анализа по продажам и отчёта о скорости продаж.</div></div></div>`;
-  } else if (salesData && Object.keys(salesData).length === 0) {
-    salesHTML = `<div class="alert-box info"><i class="bi bi-info-circle-fill" style="font-size:20px;flex-shrink:0"></i>
-      <div><div class="alert-title">Нет данных о продажах за ${SALES_DAYS} дней</div>
-      <div style="font-size:12px;margin-top:4px">В CRM не найдено закрытых сделок со статусом «Успешно» за последние ${SALES_DAYS} дней. Проверьте, что в сделках заполнено поле UF_CRM_SHOP.</div></div></div>`;
-  } else if (salesData && Object.keys(salesData).length > 0) {
-    // ABC analysis by sales + velocity charts
-    const prodSales = prods.map(p => {
-      let totalSold = 0;
-      if (salesData[p.id]) Object.values(salesData[p.id]).forEach(q => totalSold += q);
-      return { name: p.name, id: p.id, totalSold };
-    }).sort((a,b) => b.totalSold - a.totalSold);
+  // Sales section
+  let salesHTML='';
+  const TIP_ABC=`ABC-анализ по продажам за ${SALES_DAYS} дней:\n\nA (зелёный) — топ-20% товаров по объёму продаж.\nЭто ваши ключевые позиции — следите за остатками!\n\nB (жёлтый) — следующие 60% товаров.\nСтабильный средний спрос.\n\nC (красный) — нижние 20% товаров.\nМинимальные продажи — кандидаты на вывод\nили стимуляцию спроса.`;
+  const TIP_VEL=`Скорость продаж — среднее кол-во товаров\nпродаваемых в день за последние ${SALES_DAYS} дней.\n\nБыстрые города — наибольший поток заказов.\nМедленные — где товар расходуется медленнее.`;
 
-    const n = prodSales.length;
-    const aLim = Math.ceil(n*.2), bLim = Math.ceil(n*.8);
-    prodSales.forEach((p,i) => { p.abc = i<aLim?'A':i<bLim?'B':'C'; });
+  if(salesLoading){
+    salesHTML=`<div class="a-table-wrap"><div class="a-table-title"><i class="bi bi-bar-chart-line"></i> Аналитика продаж</div><div class="sales-spinner"><div class="spinner"></div> Загружаем данные о продажах из CRM (фоновая загрузка)...</div></div>`;
+  } else if(salesData===null){
+    salesHTML=`<div class="alert-box info"><i class="bi bi-info-circle-fill" style="font-size:20px;flex-shrink:0"></i><div><div class="alert-title">Нет прав CRM — ABC-анализ и "скоро закончатся" недоступны</div><div style="font-size:12px;margin-top:4px">Добавьте право <strong>CRM</strong> к вебхуку: Битрикс24 → Настройки → Разработчикам → Входящие вебхуки → ваш вебхук → добавить «CRM».<br>Также убедитесь, что в закрытых сделках заполнено поле <strong>UF_CRM_SHOP</strong> (склад/магазин).</div></div></div>`;
+  } else if(salesData&&Object.keys(salesData).length===0){
+    salesHTML=`<div class="alert-box info"><i class="bi bi-info-circle-fill" style="font-size:20px;flex-shrink:0"></i><div><div class="alert-title">Нет данных о продажах за ${SALES_DAYS} дней</div><div style="font-size:12px;margin-top:4px">Закрытые сделки со статусом «Успешно» не найдены за последние ${SALES_DAYS} дней. Проверьте заполнение поля UF_CRM_SHOP в сделках.</div></div></div>`;
+  } else if(salesData&&Object.keys(salesData).length>0){
+    const prodSales=prods.map(p=>{
+      let totalSold=0;
+      if(salesData[p.id]) Object.values(salesData[p.id]).forEach(q=>totalSold+=q);
+      return{name:p.name,id:p.id,totalSold};
+    }).sort((a,b)=>b.totalSold-a.totalSold);
 
-    // City sales velocity (units/day)
-    const cityVelocity = visStores.map(s => {
-      const sid = String(s.id);
-      let totalSold = 0;
-      Object.values(salesData).forEach(storeMap => { totalSold += storeMap[sid] || 0; });
-      return { name: cityName(s.title), sid, velocity: totalSold / SALES_DAYS, totalSold };
-    }).sort((a,b) => b.velocity - a.velocity);
+    const n=prodSales.length, aLim=Math.ceil(n*.2), bLim=Math.ceil(n*.8);
+    prodSales.forEach((p,i)=>{p.abc=i<aLim?'A':i<bLim?'B':'C';});
 
-    const strongCities = cityVelocity.slice(0, 10);
-    const weakCities   = [...cityVelocity].sort((a,b) => a.velocity - b.velocity).slice(0, 10);
+    const cityVelocity=visStores.map(s=>{
+      const sid=String(s.id); let totalSold=0;
+      Object.values(salesData).forEach(sm=>{totalSold+=sm[sid]||0;});
+      return{name:cityName(s.title),sid,velocity:totalSold/SALES_DAYS,totalSold};
+    }).sort((a,b)=>b.velocity-a.velocity);
 
-    // ABC rows (top 5 per class)
-    const abcRows = ['A','B','C'].flatMap(cls =>
-      prodSales.filter(p=>p.abc===cls).slice(0,5).map(p =>
+    const strongCities=cityVelocity.slice(0,10);
+    const weakCities=[...cityVelocity].sort((a,b)=>a.velocity-b.velocity).slice(0,10);
+    const top15=prodSales.slice(0,15);
+
+    const abcRows=['A','B','C'].flatMap(cls=>
+      prodSales.filter(p=>p.abc===cls).slice(0,5).map(p=>
         `<tr><td class="rank"><span class="abc-badge abc-${cls}">${cls}</span></td>
-         <td class="name">${esc(p.name.length>30?p.name.slice(0,30)+'…':p.name)}</td>
+         <td class="name" title="${esc(p.name)}">${esc(p.name.length>32?p.name.slice(0,32)+'…':p.name)}</td>
          <td class="val">${fmtNum(p.totalSold)} шт.</td></tr>`
       )
     ).join('');
 
-    // Top 15 for bar chart
-    const top15 = prodSales.slice(0, 15);
+    // "Soon running out" section
+    const THRESH=RUNOUT_DAYS;
+    const runout=[];
+    prods.forEach(p=>{
+      visStores.forEach(s=>{
+        const sid=String(s.id);
+        const cur=stock[p.id]?.[sid]??null;
+        if(cur===null||cur===0) return;
+        const vel=salesData[p.id]?.[sid]?salesData[p.id][sid]/SALES_DAYS:0;
+        if(vel<=0) return;
+        const days=Math.floor(cur/vel);
+        if(days<THRESH) runout.push({product:p.name,city:cityName(s.title),stock:cur,vel,days});
+      });
+    });
+    runout.sort((a,b)=>a.days-b.days);
 
-    salesHTML = `
+    const runoutRows=runout.slice(0,60).map(r=>{
+      const urgCls=r.days<7?'days-urgent':r.days<14?'days-warn':'days-ok';
+      return `<tr>
+        <td class="name" title="${esc(r.product)}">${esc(r.product.length>36?r.product.slice(0,36)+'…':r.product)}</td>
+        <td>${esc(r.city)}</td>
+        <td style="text-align:right">${r.stock}</td>
+        <td style="text-align:right">${r.vel.toFixed(1)}</td>
+        <td style="text-align:right"><span class="days-badge ${urgCls}">${r.days} дн.</span></td>
+      </tr>`;
+    }).join('');
+
+    const runoutSection=runout.length?`
+      <div class="a-table-wrap">
+        <div class="a-table-title">
+          <i class="bi bi-hourglass-split" style="color:#dc2626"></i>
+          Скоро закончатся — до ${THRESH} дней
+          <span class="help-tip" data-tip="Товары, которые закончатся на складе\nв течение ${THRESH} дней при текущей скорости продаж.\n\n🔴 Красный — менее 7 дней, срочно!\n🟡 Жёлтый — 7–14 дней\n🟢 Зелёный — 14–${THRESH} дней\n\nРасчёт: остаток ÷ средние продажи в день\nза последние ${SALES_DAYS} дней.">?</span>
+          <span style="margin-left:auto;font-size:11px;font-weight:400;color:var(--muted)">${runout.length} позиций</span>
+        </div>
+        <table class="a-table">
+          <thead><tr>
+            <th style="min-width:200px">Товар</th>
+            <th>Город</th>
+            <th style="text-align:right">Остаток</th>
+            <th style="text-align:right" data-tip="Среднее кол-во продаж в день\nза последние ${SALES_DAYS} дней">Прод./день</th>
+            <th style="text-align:right">Осталось</th>
+          </tr></thead>
+          <tbody>${runoutRows}</tbody>
+        </table>
+        ${runout.length>60?`<div style="padding:10px 15px;font-size:11px;color:var(--muted)">Показано 60 из ${runout.length}. Используйте фильтр по городу в таблице остатков.</div>`:''}
+      </div>`:
+      `<div class="alert-box" style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534">
+        <i class="bi bi-check-circle-fill" style="font-size:20px;flex-shrink:0"></i>
+        <div><div class="alert-title">Дефицита не ожидается</div>
+        <div style="font-size:12px;margin-top:2px">Ни один товар не заканчивается в течение ${THRESH} дней при текущей скорости продаж.</div></div>
+      </div>`;
+
+    salesHTML=`
+      ${runoutSection}
       <div class="charts-row">
         <div class="chart-card">
           <div class="a-table-title"><i class="bi bi-bar-chart-horizontal"></i> Топ-15 товаров по продажам (${SALES_DAYS} дн.)</div>
           <div class="chart-body bar-h"><canvas id="chart-bar"></canvas></div>
         </div>
         <div class="chart-card">
-          <div class="a-table-title"><i class="bi bi-pie-chart"></i> Наличие на складе</div>
+          <div class="a-table-title"><i class="bi bi-pie-chart"></i> Наличие на складах</div>
           <div class="chart-body donut-h"><canvas id="chart-doughnut"></canvas></div>
         </div>
       </div>
       <div class="analytics-main">
         <div class="a-table-wrap">
-          <div class="a-table-title"><i class="bi bi-grid-1x2"></i> ABC-анализ по продажам</div>
+          <div class="a-table-title">
+            <i class="bi bi-grid-1x2"></i> ABC-анализ по продажам
+            <span class="help-tip" data-tip="${TIP_ABC.replace(/"/g,'&quot;')}">?</span>
+          </div>
           <table class="a-table">
             <thead><tr><th>Кл.</th><th>Товар</th><th style="text-align:right">Продано</th></tr></thead>
             <tbody>${abcRows}</tbody>
           </table>
         </div>
         <div class="a-table-wrap">
-          <div class="a-table-title"><i class="bi bi-lightning-charge" style="color:#16a34a"></i> Быстрые города <small style="font-weight:400;color:var(--muted)">(прод./день)</small></div>
-          <table class="a-table"><tbody>${
-            strongCities.map((c,i)=>`<tr><td class="rank">${i+1}</td><td class="name">${esc(c.name)}</td><td class="val good">${c.velocity.toFixed(1)} шт./д</td></tr>`).join('')
-          }</tbody></table>
+          <div class="a-table-title">
+            <i class="bi bi-lightning-charge" style="color:#16a34a"></i> Быстрые города
+            <span class="help-tip" data-tip="${TIP_VEL.replace(/"/g,'&quot;')}">?</span>
+          </div>
+          <table class="a-table"><tbody>${strongCities.map((c,i)=>`<tr><td class="rank">${i+1}</td><td class="name">${esc(c.name)}</td><td class="val good">${c.velocity.toFixed(1)} шт./д</td></tr>`).join('')}</tbody></table>
         </div>
         <div class="a-table-wrap">
-          <div class="a-table-title"><i class="bi bi-hourglass-split" style="color:#dc2626"></i> Медленные города <small style="font-weight:400;color:var(--muted)">(прод./день)</small></div>
-          <table class="a-table"><tbody>${
-            weakCities.map((c,i)=>`<tr><td class="rank">${i+1}</td><td class="name">${esc(c.name)}</td><td class="val bad">${c.velocity.toFixed(1)} шт./д</td></tr>`).join('')
-          }</tbody></table>
+          <div class="a-table-title">
+            <i class="bi bi-hourglass" style="color:#dc2626"></i> Медленные города
+            <span class="help-tip" data-tip="${TIP_VEL.replace(/"/g,'&quot;')}">?</span>
+          </div>
+          <table class="a-table"><tbody>${weakCities.map((c,i)=>`<tr><td class="rank">${i+1}</td><td class="name">${esc(c.name)}</td><td class="val bad">${c.velocity.toFixed(1)} шт./д</td></tr>`).join('')}</tbody></table>
         </div>
       </div>`;
 
-    // Init charts after HTML is set (deferred below)
-    setTimeout(() => {
-      if (typeof Chart === 'undefined') return;
-      const ctxBar = document.getElementById('chart-bar');
-      if (ctxBar && !chartBar) {
-        chartBar = new Chart(ctxBar, {
+    setTimeout(()=>{
+      if(typeof Chart==='undefined') return;
+      const ctxBar=document.getElementById('chart-bar');
+      if(ctxBar&&!chartBar){
+        chartBar=new Chart(ctxBar,{
           type:'bar',
-          data:{ labels: top15.map(p=>p.name.length>26?p.name.slice(0,26)+'…':p.name),
-            datasets:[{label:'Продано',data:top15.map(p=>p.totalSold),backgroundColor:'#3b82f6',borderRadius:4}] },
-          options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+          data:{
+            labels:top15.map(p=>wrapLabel(p.name)),
+            datasets:[{label:'Продано',data:top15.map(p=>p.totalSold),backgroundColor:'#3b82f6',borderRadius:4}]
+          },
+          options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
             plugins:{legend:{display:false}},
-            scales:{ x:{grid:{color:'#f0f4f8'},ticks:{font:{size:10}}}, y:{grid:{display:false},ticks:{font:{size:10}}} } }
+            scales:{x:{grid:{color:'#f0f4f8'},ticks:{font:{size:10}}},y:{grid:{display:false},ticks:{font:{size:10},maxRotation:0}}}}
         });
       }
-      const ctxD = document.getElementById('chart-doughnut');
-      if (ctxD && !chartDoughnut) {
-        chartDoughnut = new Chart(ctxD, {
+      const ctxD=document.getElementById('chart-doughnut');
+      if(ctxD&&!chartDoughnut){
+        chartDoughnut=new Chart(ctxD,{
           type:'doughnut',
-          data:{ labels:['В наличии','Мало','Нет'],
-            datasets:[{data:[okCnt,lowCnt,zeroCnt],backgroundColor:['#22c55e','#eab308','#ef4444'],borderWidth:2,borderColor:'#fff'}] },
-          options:{ responsive:true, maintainAspectRatio:false,
-            plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:10}}} }
+          data:{labels:['В наличии','Мало','Нет'],
+            datasets:[{data:[okCnt,lowCnt,zeroCnt],backgroundColor:['#22c55e','#eab308','#ef4444'],borderWidth:2,borderColor:'#fff'}]},
+          options:{responsive:true,maintainAspectRatio:false,
+            plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:10}}}}
         });
       }
-    }, 0);
+    },0);
   }
 
-  // City color grid
-  const cityGridHTML = cityStockData.map(c =>
-    `<div class="city-card ${c.cls}">
+  const cityGridHTML=cityStockData.map(c=>
+    `<div class="city-card ${c.cls}" data-tip="Нулей: ${Math.round(c.zeroRate*100)}% позиций">
       <div class="city-card-name">${esc(c.name)}</div>
       <div class="city-card-val">${fmtNum(c.total)}</div>
       <div class="city-card-sub">${Math.round(c.zeroRate*100)}% нулей</div>
     </div>`
   ).join('');
 
-  wrap.innerHTML = `
+  const TIP_KPI_COV=`Процент позиций (товар × склад),\nгде остаток превышает ${LOW_STOCK} шт.\nВысокое значение = хорошее насыщение.`;
+  const TIP_CITY_GRID=`Карта складов по остаткам:\n🟢 Зелёный — менее 25% нулей\n🟡 Жёлтый — 25–50% нулей\n🔴 Красный — более 50% нулей (дефицит)`;
+
+  wrap.innerHTML=`
     ${warnHTML}
     <div class="kpi-grid">
-      <div class="kpi-card"><div class="kpi-label">Товаров в каталоге</div><div class="kpi-value">${prods.length}</div><div class="kpi-sub">видимых позиций</div></div>
-      <div class="kpi-card"><div class="kpi-label">Активных городов</div><div class="kpi-value">${visStores.length}</div><div class="kpi-sub">складов</div></div>
+      <div class="kpi-card"><div class="kpi-label">Товаров</div><div class="kpi-value">${prods.length}</div><div class="kpi-sub">видимых позиций</div></div>
+      <div class="kpi-card"><div class="kpi-label">Городов</div><div class="kpi-value">${visStores.length}</div><div class="kpi-sub">активных складов</div></div>
       <div class="kpi-card ok"><div class="kpi-label">Суммарный остаток</div><div class="kpi-value">${fmtNum(totalUnits)}</div><div class="kpi-sub">единиц</div></div>
-      <div class="kpi-card ${coverage<60?'warn':'ok'}"><div class="kpi-label">Хорошее покрытие</div><div class="kpi-value">${coverage}%</div><div class="kpi-sub">позиций &gt;5 шт.</div></div>
+      <div class="kpi-card ${coverage<60?'warn':'ok'}"><div class="kpi-label">Покрытие складов <span class="help-tip" data-tip="${TIP_KPI_COV}">?</span></div><div class="kpi-value">${coverage}%</div><div class="kpi-sub">&gt;${LOW_STOCK} шт. на складе</div></div>
       <div class="kpi-card warn"><div class="kpi-label">Нулевых позиций</div><div class="kpi-value">${fmtNum(zeroCnt)}</div><div class="kpi-sub">товар × город = 0</div></div>
     </div>
     ${salesHTML}
     <div class="a-table-wrap">
-      <div class="a-table-title"><i class="bi bi-map"></i> Карта городов по складским остаткам</div>
+      <div class="a-table-title"><i class="bi bi-map"></i> Карта городов по складским остаткам <span class="help-tip" data-tip="${TIP_CITY_GRID}">?</span></div>
       <div class="city-grid">${cityGridHTML}</div>
     </div>`;
 }
@@ -1068,453 +1158,345 @@ function renderAnalytics() {
 // ================================================================
 // RENDER: ADMIN
 // ================================================================
-function renderAdmin() {
-  const qProd = (document.getElementById('admin-q-prod')?.value || '').toLowerCase();
-  const qCity = (document.getElementById('admin-q-city')?.value || '').toLowerCase();
-  const hiddenProds  = getHiddenProdsSet();
-  const hiddenCities = getHiddenCitiesSet();
-  const canManage    = userRole === 'admin' || userRole === 'director';
+function renderAdmin(){
+  const qProd=(document.getElementById('admin-q-prod')?.value||'').toLowerCase();
+  const qCity=(document.getElementById('admin-q-city')?.value||'').toLowerCase();
+  const hp=getHiddenProdsSet(), hc=getHiddenCitiesSet();
+  const canManage=userRole==='admin'||userRole==='director';
 
-  // Category chips for product filter
-  const sectionCounts = {};
-  Object.values(products).filter(p => p.iblockId == MAIN_IBLOCK_ID).forEach(p => {
-    const sid = p.sectionId || '';
-    sectionCounts[sid] = (sectionCounts[sid] || 0) + 1;
+  const sectionCounts={};
+  Object.values(products).filter(p=>p.iblockId==MAIN_IBLOCK_ID).forEach(p=>{
+    const sid=p.sectionId||'';
+    sectionCounts[sid]=(sectionCounts[sid]||0)+1;
   });
-  let catChipsHtml = `<button class="admin-cat-chip ${!adminCatFilter?'active':''}" onclick="setAdminCat('')">Все</button>`;
-  Object.entries(sectionCounts).filter(([sid])=>sid).sort((a,b)=>b[1]-a[1]).forEach(([sid,cnt]) => {
-    const name = sections[sid] || ('Группа '+sid);
-    catChipsHtml += `<button class="admin-cat-chip ${adminCatFilter===sid?'active':''}" onclick="setAdminCat('${sid}')">${esc(name)} (${cnt})</button>`;
+  let catChips=`<button class="admin-cat-chip ${!adminCatFilter?'active':''}" onclick="setAdminCat('')">Все</button>`;
+  Object.entries(sectionCounts).filter(([sid])=>sid).sort((a,b)=>b[1]-a[1]).forEach(([sid,cnt])=>{
+    const name=sections[sid]||('Группа '+sid);
+    catChips+=`<button class="admin-cat-chip ${adminCatFilter===sid?'active':''}" onclick="setAdminCat('${sid}')">${esc(name)} (${cnt})</button>`;
   });
-  document.getElementById('admin-cat-chips').innerHTML = catChipsHtml;
+  document.getElementById('admin-cat-chips').innerHTML=catChips;
 
-  // Products list
-  const prods = Object.values(products)
-    .filter(p => p.iblockId == MAIN_IBLOCK_ID)
-    .filter(p => !adminCatFilter || p.sectionId === adminCatFilter)
-    .filter(p => !qProd || p.name.toLowerCase().includes(qProd))
-    .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+  const prods=Object.values(products)
+    .filter(p=>p.iblockId==MAIN_IBLOCK_ID)
+    .filter(p=>!adminCatFilter||p.sectionId===adminCatFilter)
+    .filter(p=>!qProd||p.name.toLowerCase().includes(qProd))
+    .sort((a,b)=>a.name.localeCompare(b.name,'ru'));
 
-  let cities = stores.filter(s => !qCity || cityName(s.title).toLowerCase().includes(qCity));
-  if ((userRole === 'regional' || userRole === 'operator') && myCities.size > 0)
-    cities = cities.filter(s => myCities.has(String(s.id)));
+  let cities=stores.filter(s=>!qCity||cityName(s.title).toLowerCase().includes(qCity));
+  if((userRole==='regional'||userRole==='operator')&&myCities.size>0) cities=cities.filter(s=>myCities.has(String(s.id)));
 
-  document.getElementById('prod-count').textContent =
-    `${prods.filter(p=>!hiddenProds.has(p.id)).length} / ${prods.length}`;
-  document.getElementById('city-count').textContent =
-    `${cities.filter(s=>!hiddenCities.has(String(s.id))).length} / ${cities.length}`;
+  document.getElementById('prod-count').textContent=`${prods.filter(p=>!hp.has(p.id)).length} / ${prods.length}`;
+  document.getElementById('city-count').textContent=`${cities.filter(s=>!hc.has(String(s.id))).length} / ${cities.length}`;
 
-  document.getElementById('admin-prod-list').innerHTML = prods.map(p => {
-    const on = !hiddenProds.has(p.id);
+  document.getElementById('admin-prod-list').innerHTML=prods.map(p=>{
+    const on=!hp.has(p.id);
     return `<div class="admin-item"><span class="admin-item-name">${esc(p.name)}</span>
-      ${canManage
-        ? `<button class="toggle ${on?'on':'off'}" onclick="toggleProd('${p.id}')" title="${on?'Скрыть':'Показать'}"></button>`
-        : `<span style="font-size:11px;color:var(--muted)">${on?'Виден':'Скрыт'}</span>`}</div>`;
-  }).join('') || '<div class="no-data" style="padding:20px">Нет товаров</div>';
+      ${canManage?`<button class="toggle ${on?'on':'off'}" onclick="toggleProd('${p.id}')" title="${on?'Скрыть':'Показать'}"></button>`
+        :`<span style="font-size:11px;color:var(--muted)">${on?'Виден':'Скрыт'}</span>`}</div>`;
+  }).join('')||'<div class="no-data" style="padding:20px">Нет товаров</div>';
 
-  document.getElementById('admin-city-list').innerHTML = cities.map(s => {
-    const sid = String(s.id), on = !hiddenCities.has(sid);
+  document.getElementById('admin-city-list').innerHTML=cities.map(s=>{
+    const sid=String(s.id),on=!hc.has(sid);
     return `<div class="admin-item"><span class="admin-item-name">${esc(cityName(s.title))}</span>
-      ${canManage
-        ? `<button class="toggle ${on?'on':'off'}" onclick="toggleCity('${sid}')" title="${on?'Скрыть':'Показать'}"></button>`
-        : `<span style="font-size:11px;color:var(--muted)">${on?'Виден':'Скрыт'}</span>`}</div>`;
-  }).join('') || '<div class="no-data" style="padding:20px">Нет городов</div>';
+      ${canManage?`<button class="toggle ${on?'on':'off'}" onclick="toggleCity('${sid}')" title="${on?'Скрыть':'Показать'}"></button>`
+        :`<span style="font-size:11px;color:var(--muted)">${on?'Виден':'Скрыт'}</span>`}</div>`;
+  }).join('')||'<div class="no-data" style="padding:20px">Нет городов</div>';
 
-  // Profiles
-  if (canManage) renderProfiles();
+  if(canManage) renderProfiles();
 }
 
-function setAdminCat(sid) { adminCatFilter = sid; renderAdmin(); }
+function setAdminCat(sid){adminCatFilter=sid;renderAdmin();}
 
 // ================================================================
-// RENDER: PROFILES
+// PROFILES
 // ================================================================
-function getProfiles() {
-  try { return JSON.parse(localStorage.getItem(PROFILES_KEY) || '[]'); } catch { return []; }
-}
-function saveProfiles(arr) { localStorage.setItem(PROFILES_KEY, JSON.stringify(arr)); }
+function getProfiles(){try{return JSON.parse(localStorage.getItem(PROFILES_KEY)||'[]');}catch{return[];}}
+function saveLocalProfiles(arr){localStorage.setItem(PROFILES_KEY,JSON.stringify(arr));}
 
-function renderProfiles() {
-  const profiles = getProfiles();
-  const roleLabels = { regional:'Рег. руководитель', operator:'Оператор КЦ' };
-  document.getElementById('profiles-list').innerHTML = profiles.length
-    ? profiles.map(p => `
+function renderProfiles(){
+  const profiles=getProfiles();
+  const roleLabels={regional:'Рег. руководитель',operator:'Оператор КЦ'};
+  document.getElementById('profiles-list').innerHTML=profiles.length
+    ?profiles.map(p=>`
       <div class="profile-row">
-        <div><div class="profile-name">${esc(p.name)}</div>
-        <div class="profile-meta">${roleLabels[p.role]||p.role} · ${p.cities.length?p.cities.length+' город.':'все города'}</div></div>
+        <div class="profile-info">
+          <div class="profile-name">${esc(p.name)}</div>
+          <div class="profile-meta">${roleLabels[p.role]||p.role} · ${p.cities.length?p.cities.length+' город.':'все города'}</div>
+        </div>
         <div class="profile-actions">
           <button class="btn-sm" onclick="copyProfileUrl('${p.id}')"><i class="bi bi-link-45deg"></i> Ссылка</button>
-          <button class="btn-sm" onclick="openProfileModal('${p.id}')"><i class="bi bi-pencil"></i></button>
+          <button class="btn-sm" onclick="openProfileModal('${p.id}')"><i class="bi bi-pencil"></i> Изм.</button>
           <button class="btn-sm danger" onclick="deleteProfile('${p.id}')"><i class="bi bi-trash"></i></button>
         </div>
       </div>`).join('')
-    : '<div class="no-data" style="padding:20px;font-size:13px">Профили не созданы. Нажмите «+ Добавить» чтобы настроить доступ для регионального менеджера.</div>';
+    :'<div class="no-data" style="padding:20px;font-size:13px">Нет профилей. Нажмите «+ Добавить» чтобы настроить доступ для менеджера.</div>';
 }
 
-function openProfileModal(id) {
-  editingProfileId = id;
-  const profiles = getProfiles();
-  const p = id ? profiles.find(pr => pr.id === id) : null;
-  document.getElementById('pm-name').value = p ? p.name : '';
-  const role = p ? p.role : 'regional';
-  document.querySelector(`input[name="pm-role"][value="${role}"]`).checked = true;
-  const savedCities = new Set(p ? p.cities : []);
-  document.getElementById('pm-cities').innerHTML = stores.map(s => {
-    const sid = String(s.id), chk = savedCities.has(sid) ? 'checked' : '';
+function openProfileModal(id){
+  editingProfileId=id;
+  const p=id?getProfiles().find(pr=>pr.id===id):null;
+  document.getElementById('pm-name').value=p?p.name:'';
+  const role=p?p.role:'regional';
+  document.querySelector(`input[name="pm-role"][value="${role}"]`).checked=true;
+  const saved=new Set(p?p.cities:[]);
+  document.getElementById('pm-cities').innerHTML=stores.map(s=>{
+    const sid=String(s.id),chk=saved.has(sid)?'checked':'';
     return `<label class="pm-city-item"><input type="checkbox" value="${sid}" ${chk}><span>${esc(cityName(s.title))}</span></label>`;
   }).join('');
-  document.getElementById('profile-modal').style.display = 'flex';
+  document.getElementById('profile-modal').style.display='flex';
 }
+function closeProfileModal(){document.getElementById('profile-modal').style.display='none';editingProfileId=null;}
+function pmSelectAll(state){document.querySelectorAll('#pm-cities input').forEach(cb=>cb.checked=state);}
 
-function closeProfileModal() {
-  document.getElementById('profile-modal').style.display = 'none';
-  editingProfileId = null;
-}
-
-function pmSelectAll(state) {
-  document.querySelectorAll('#pm-cities input').forEach(cb => cb.checked = state);
-}
-
-function saveProfile() {
-  const name = document.getElementById('pm-name').value.trim();
-  if (!name) { alert('Введите название профиля'); return; }
-  const role    = document.querySelector('input[name="pm-role"]:checked')?.value || 'regional';
-  const cities  = [...document.querySelectorAll('#pm-cities input:checked')].map(c => c.value);
-  const profiles = getProfiles();
-  if (editingProfileId) {
-    const idx = profiles.findIndex(p => p.id === editingProfileId);
-    if (idx >= 0) profiles[idx] = { ...profiles[idx], name, role, cities };
+function saveProfile(){
+  const name=document.getElementById('pm-name').value.trim();
+  if(!name){alert('Введите название профиля');return;}
+  const role=document.querySelector('input[name="pm-role"]:checked')?.value||'regional';
+  const cities=[...document.querySelectorAll('#pm-cities input:checked')].map(c=>c.value);
+  const profiles=getProfiles();
+  if(editingProfileId){
+    const idx=profiles.findIndex(p=>p.id===editingProfileId);
+    if(idx>=0) profiles[idx]={...profiles[idx],name,role,cities};
   } else {
-    profiles.push({ id: 'p' + Date.now(), name, role, cities });
+    profiles.push({id:'p'+Date.now(),name,role,cities});
   }
-  saveProfiles(profiles);
+  saveLocalProfiles(profiles);
+  scheduleSave();
   closeProfileModal();
   renderProfiles();
 }
 
-function deleteProfile(id) {
-  if (!confirm('Удалить этот профиль?')) return;
-  saveProfiles(getProfiles().filter(p => p.id !== id));
+function deleteProfile(id){
+  if(!confirm('Удалить профиль?')) return;
+  saveLocalProfiles(getProfiles().filter(p=>p.id!==id));
+  scheduleSave();
   renderProfiles();
 }
 
-function copyProfileUrl(id) {
-  const p = getProfiles().find(pr => pr.id === id);
-  if (!p) return;
-  const cfg   = JSON.stringify({ role: p.role, cities: p.cities, name: p.name });
-  const code  = btoa(unescape(encodeURIComponent(cfg)));
-  const url   = location.origin + location.pathname + '?access=' + code;
-  navigator.clipboard.writeText(url).then(() => {
-    alert('Ссылка скопирована!\n\nОтправьте её сотруднику. При переходе по ссылке ему останется только ввести URL вебхука.');
-  }).catch(() => {
-    prompt('Скопируйте ссылку:', url);
-  });
+function copyProfileUrl(id){
+  const p=getProfiles().find(pr=>pr.id===id);
+  if(!p) return;
+  const cfg=JSON.stringify({role:p.role,cities:p.cities,name:p.name,wh:WEBHOOK});
+  const code=btoa(unescape(encodeURIComponent(cfg)));
+  const url=location.origin+location.pathname+'?access='+code;
+  navigator.clipboard.writeText(url).then(()=>{
+    alert('Ссылка скопирована!\n\nОтправьте её сотруднику. При открытии ссылки приложение запустится автоматически — вводить вебхук не нужно.');
+  }).catch(()=>prompt('Скопируйте ссылку:',url));
 }
 
 // ================================================================
-// RENDER: CATEGORY DROPDOWN (stock tab)
+// CATEGORY DROPDOWN
 // ================================================================
-function renderCategoryDropdown() {
-  const sectionCounts = {};
-  Object.values(products).filter(p => p.iblockId == MAIN_IBLOCK_ID).forEach(p => {
-    const sid = p.sectionId || '';
-    sectionCounts[sid] = (sectionCounts[sid] || 0) + 1;
+function renderCategoryDropdown(){
+  const sc={};
+  Object.values(products).filter(p=>p.iblockId==MAIN_IBLOCK_ID).forEach(p=>{const sid=p.sectionId||'';sc[sid]=(sc[sid]||0)+1;});
+  let html='';
+  if(sc['']){const chk=selectedCats.has('')?'checked':'';html+=`<label class="dd-item"><input type="checkbox" value="" ${chk} onchange="onCatChange('',this.checked)"><span>Без категории <small>(${sc['']})</small></span></label>`;}
+  Object.entries(sc).filter(([sid])=>sid).sort((a,b)=>b[1]-a[1]).forEach(([sid,cnt])=>{
+    const name=sections[sid]||('Группа '+sid);
+    html+=`<label class="dd-item"><input type="checkbox" value="${sid}" ${selectedCats.has(sid)?'checked':''} onchange="onCatChange('${sid}',this.checked)"><span>${esc(name)} <small>(${cnt})</small></span></label>`;
   });
-  let html = '';
-  if (sectionCounts['']) {
-    const chk = selectedCats.has('') ? 'checked' : '';
-    html += `<label class="dd-item"><input type="checkbox" value="" ${chk} onchange="onCatChange('',this.checked)"><span>Без категории <small>(${sectionCounts['']})</small></span></label>`;
-  }
-  Object.entries(sectionCounts).filter(([sid]) => sid).sort((a,b) => b[1]-a[1]).forEach(([sid, cnt]) => {
-    const name = sections[sid] || ('Группа ' + sid);
-    const chk  = selectedCats.has(sid) ? 'checked' : '';
-    html += `<label class="dd-item"><input type="checkbox" value="${sid}" ${chk} onchange="onCatChange('${sid}',this.checked)"><span>${esc(name)} <small>(${cnt})</small></span></label>`;
-  });
-  document.getElementById('cat-dd-items').innerHTML = html;
+  document.getElementById('cat-dd-items').innerHTML=html;
   updateCatLabel();
 }
 
 // ================================================================
 // AUTO-REFRESH
 // ================================================================
-function startAutoRefresh() {
-  if (refreshTimer) clearInterval(refreshTimer);
-  refreshCountdown = REFRESH_SEC;
-  updateCountdown();
-  refreshTimer = setInterval(() => {
+function startAutoRefresh(){
+  if(refreshTimer) clearInterval(refreshTimer);
+  refreshCountdown=REFRESH_SEC; updateCountdown();
+  refreshTimer=setInterval(()=>{
     refreshCountdown--;
-    if (refreshCountdown <= 0) { refreshCountdown = REFRESH_SEC; silentReload(); }
+    if(refreshCountdown<=0){refreshCountdown=REFRESH_SEC;silentReload();}
     else updateCountdown();
-  }, 1000);
+  },1000);
 }
-
-function updateCountdown() {
-  const el = document.getElementById('refresh-cd');
-  if (!el) return;
-  const m = Math.floor(refreshCountdown / 60), s = refreshCountdown % 60;
-  el.textContent = `${m}:${String(s).padStart(2,'0')}`;
+function updateCountdown(){
+  const el=document.getElementById('refresh-cd');
+  if(!el) return;
+  const m=Math.floor(refreshCountdown/60),s=refreshCountdown%60;
+  el.textContent=`${m}:${String(s).padStart(2,'0')}`;
 }
-
-async function silentReload() {
-  try {
-    stores = []; products = {}; sections = {}; stock = {};
-    const rawStores = await fetchAll('catalog.store.list',
-      {'select[0]':'ID','select[1]':'TITLE','select[2]':'ACTIVE','filter[ACTIVE]':'Y'}, 0, 0);
-    stores = rawStores.filter(s=>!SKIP_STORES.includes(s.title))
-      .sort((a,b)=>cityName(a.title).localeCompare(cityName(b.title),'ru'));
-    const rawStock = await fetchAll('catalog.storeproduct.list',
-      {'select[0]':'PRODUCT_ID','select[1]':'STORE_ID','select[2]':'AMOUNT'}, 0, 0);
-    const productIds = new Set();
-    rawStock.forEach(r => {
-      const pid=String(r.productId??r.PRODUCT_ID), sid=String(r.storeId??r.STORE_ID), amt=parseFloat(r.amount??r.AMOUNT)||0;
-      if(!stock[pid]) stock[pid]={};
-      stock[pid][sid]=amt; productIds.add(pid);
-    });
-    await loadProducts([...productIds]);
+async function silentReload(){
+  try{
+    stores=[];products={};sections={};stock={};
+    const rs=await fetchAll('catalog.store.list',{'select[0]':'ID','select[1]':'TITLE','select[2]':'ACTIVE','filter[ACTIVE]':'Y'},0,0);
+    stores=rs.filter(s=>!SKIP_STORES.includes(s.title)).sort((a,b)=>cityName(a.title).localeCompare(cityName(b.title),'ru'));
+    const rk=await fetchAll('catalog.storeproduct.list',{'select[0]':'PRODUCT_ID','select[1]':'STORE_ID','select[2]':'AMOUNT'},0,0);
+    const ids=new Set();
+    rk.forEach(r=>{const pid=String(r.productId??r.PRODUCT_ID),sid=String(r.storeId??r.STORE_ID),amt=parseFloat(r.amount??r.AMOUNT)||0;if(!stock[pid])stock[pid]={};stock[pid][sid]=amt;ids.add(pid);});
+    await loadProducts([...ids]);
     await loadSections();
     initSelectedCats();
-    renderCategoryDropdown();
-    renderStock();
-    if (currentTab === 'analytics') renderAnalytics();
-    document.getElementById('last-update').textContent = 'Обновлено: ' + new Date().toLocaleTimeString('ru-RU');
-  } catch(e) { console.error('Auto-refresh error', e); }
+    await loadSharedConfig();
+    renderCategoryDropdown();renderStock();
+    if(currentTab==='analytics') renderAnalytics();
+    document.getElementById('last-update').textContent='Обновлено: '+new Date().toLocaleTimeString('ru-RU');
+  }catch(e){console.error('Auto-refresh error',e);}
 }
 
 // ================================================================
 // CSV EXPORT
 // ================================================================
-function exportCSV() {
-  const visStores  = getVisStores((document.getElementById('q-city')?.value||'').toLowerCase().trim());
-  const prodQ = (document.getElementById('q-product')?.value||'').toLowerCase().trim();
-  const visProducts = Object.values(products)
-    .filter(p => p.iblockId==MAIN_IBLOCK_ID && !p.hidden)
-    .filter(p => !prodQ || p.name.toLowerCase().includes(prodQ))
-    .filter(p => selectedCats.has(p.sectionId||''))
-    .sort((a,b) => a.name.localeCompare(b.name,'ru'));
-
-  let csv = '﻿';
-  csv += ['Товар','Категория',...visStores.map(s=>cityName(s.title)),'Итого'].join(';') + '\r\n';
-  visProducts.forEach(p => {
-    const cat = sections[p.sectionId] || '';
-    let total = 0;
-    const cells = visStores.map(s => { const a=stock[p.id]?.[String(s.id)]; if(a!==undefined)total+=a; return a!==undefined?a:''; });
-    csv += [csvEsc(p.name), csvEsc(cat), ...cells, total].join(';') + '\r\n';
+function exportCSV(){
+  const visStores=getVisStores((document.getElementById('q-city')?.value||'').toLowerCase().trim());
+  const prodQ=(document.getElementById('q-product')?.value||'').toLowerCase().trim();
+  const vp=Object.values(products).filter(p=>p.iblockId==MAIN_IBLOCK_ID&&!p.hidden)
+    .filter(p=>!prodQ||p.name.toLowerCase().includes(prodQ))
+    .filter(p=>selectedCats.has(p.sectionId||'')).sort((a,b)=>a.name.localeCompare(b.name,'ru'));
+  let csv='﻿';
+  csv+=['Товар','Категория',...visStores.map(s=>cityName(s.title)),'Итого'].join(';')+'\r\n';
+  vp.forEach(p=>{
+    const cat=sections[p.sectionId]||'';let total=0;
+    const cells=visStores.map(s=>{const a=stock[p.id]?.[String(s.id)];if(a!==undefined)total+=a;return a!==undefined?a:'';});
+    csv+=[csvEsc(p.name),csvEsc(cat),...cells,total].join(';')+'\r\n';
   });
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-  const url  = URL.createObjectURL(blob);
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
   Object.assign(document.createElement('a'),{href:url,download:'склад_'+new Date().toISOString().slice(0,10)+'.csv'}).click();
   URL.revokeObjectURL(url);
 }
-function csvEsc(s) { s=String(s||''); return (s.includes(';')||s.includes('"')||s.includes('\n'))?'"'+s.replace(/"/g,'""')+'"':s; }
+function csvEsc(s){s=String(s||'');return(s.includes(';')||s.includes('"')||s.includes('\n'))?'"'+s.replace(/"/g,'""')+'"':s;}
 
 // ================================================================
 // ACTIONS
 // ================================================================
-function setTab(tab, btn) {
-  currentTab = tab;
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+function setTab(tab,btn){
+  currentTab=tab;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
   btn.classList.add('active');
-  document.getElementById('tab-' + tab).classList.add('active');
-  if (tab === 'analytics') renderAnalytics();
-  if (tab === 'admin')     renderAdmin();
+  document.getElementById('tab-'+tab).classList.add('active');
+  if(tab==='analytics') renderAnalytics();
+  if(tab==='admin')     renderAdmin();
 }
+function applyFilters(){if(currentTab==='stock') renderStock();}
 
-function applyFilters() { if (currentTab === 'stock') renderStock(); }
+function onAvailChange(){
+  selectedAvail=new Set();
+  if(document.getElementById('av-ok').checked)   selectedAvail.add('ok');
+  if(document.getElementById('av-low').checked)  selectedAvail.add('low');
+  if(document.getElementById('av-zero').checked) selectedAvail.add('zero');
+  updateAvailLabel(); renderStock();
+}
+function onCatChange(sid,checked){if(checked)selectedCats.add(sid);else selectedCats.delete(sid);updateCatLabel();renderStock();}
+function selectAllCats(state){
+  document.querySelectorAll('#cat-dd-items input[type=checkbox]').forEach(cb=>{cb.checked=state;if(state)selectedCats.add(cb.value);else selectedCats.delete(cb.value);});
+  if(state) selectedCats.add('');
+  updateCatLabel(); renderStock();
+}
+function updateAvailLabel(){
+  const sel=['ok','low','zero'].filter(a=>selectedAvail.has(a));
+  const names={ok:'Есть',low:'Мало',zero:'Нет'};
+  document.getElementById('avail-label').textContent=sel.length===3?'Наличие':sel.length===0?'Нет фильтра':sel.map(a=>names[a]).join(', ');
+}
+function updateCatLabel(){
+  const total=Object.keys(sections).length+1;
+  const el=document.getElementById('cat-label');
+  if(!el) return;
+  el.textContent=selectedCats.size>=total?'Категории':selectedCats.size===0?'Категории (0)':`Категории (${selectedCats.size})`;
+}
+function toggleDD(id){
+  const wrap=document.getElementById(id),isOpen=wrap.classList.contains('open');
+  document.querySelectorAll('.dd-wrap.open').forEach(w=>w.classList.remove('open'));
+  if(!isOpen) wrap.classList.add('open');
+}
+document.addEventListener('click',e=>{if(!e.target.closest('.dd-wrap'))document.querySelectorAll('.dd-wrap.open').forEach(w=>w.classList.remove('open'));});
 
-function onAvailChange() {
-  selectedAvail = new Set();
-  if (document.getElementById('av-ok').checked)   selectedAvail.add('ok');
-  if (document.getElementById('av-low').checked)  selectedAvail.add('low');
-  if (document.getElementById('av-zero').checked) selectedAvail.add('zero');
-  updateAvailLabel();
+function sortByCity(storeId){
+  if(sortStore===storeId){sortDir=sortDir===1?-1:(sortDir===-1?0:1);if(sortDir===0)sortStore=null;}
+  else{sortStore=storeId;sortDir=1;}
   renderStock();
 }
+function toggleShowHidden(){showHidden=!showHidden;document.getElementById('btn-hidden').classList.toggle('active',showHidden);document.getElementById('table-wrap').classList.toggle('show-hidden',showHidden);}
 
-function onCatChange(sid, checked) {
-  if (checked) selectedCats.add(sid); else selectedCats.delete(sid);
-  updateCatLabel();
-  renderStock();
+function toggleHideProd(pid){
+  const p=products[pid];if(!p) return;
+  p.hidden=!p.hidden;
+  const h=getHiddenProdsSet();if(p.hidden)h.add(pid);else h.delete(pid);
+  localStorage.setItem(HIDDEN_PRODS_KEY,JSON.stringify([...h]));
+  scheduleSave(); renderStock();
 }
-
-function selectAllCats(state) {
-  document.querySelectorAll('#cat-dd-items input[type=checkbox]').forEach(cb => {
-    cb.checked = state;
-    if (state) selectedCats.add(cb.value); else selectedCats.delete(cb.value);
-  });
-  if (state) selectedCats.add('');
-  updateCatLabel();
-  renderStock();
+function toggleProd(pid){
+  const p=products[pid];if(!p) return;
+  p.hidden=!p.hidden;
+  const h=getHiddenProdsSet();if(p.hidden)h.add(pid);else h.delete(pid);
+  localStorage.setItem(HIDDEN_PRODS_KEY,JSON.stringify([...h]));
+  scheduleSave(); renderAdmin(); renderStock();
 }
-
-function updateAvailLabel() {
-  const sel = ['ok','low','zero'].filter(a => selectedAvail.has(a));
-  const names = {ok:'Есть',low:'Мало',zero:'Нет'};
-  const el = document.getElementById('avail-label');
-  el.textContent = sel.length===3?'Наличие':sel.length===0?'Нет фильтра':sel.map(a=>names[a]).join(', ');
+function toggleCity(sid){
+  const h=getHiddenCitiesSet();if(h.has(sid))h.delete(sid);else h.add(sid);
+  localStorage.setItem(HIDDEN_CITIES_KEY,JSON.stringify([...h]));
+  scheduleSave(); renderAdmin(); renderStock();
 }
-
-function updateCatLabel() {
-  const total = Object.keys(sections).length + 1;
-  const el = document.getElementById('cat-label');
-  if (!el) return;
-  if (selectedCats.size >= total) el.textContent = 'Категории';
-  else if (!selectedCats.size) el.textContent = 'Категории (0)';
-  else el.textContent = `Категории (${selectedCats.size})`;
-}
-
-function toggleDD(id) {
-  const wrap = document.getElementById(id);
-  const isOpen = wrap.classList.contains('open');
-  document.querySelectorAll('.dd-wrap.open').forEach(w => w.classList.remove('open'));
-  if (!isOpen) wrap.classList.add('open');
-}
-document.addEventListener('click', e => {
-  if (!e.target.closest('.dd-wrap')) document.querySelectorAll('.dd-wrap.open').forEach(w=>w.classList.remove('open'));
-});
-
-function sortByCity(storeId) {
-  if (sortStore === storeId) {
-    sortDir = sortDir===1?-1:(sortDir===-1?0:1);
-    if (sortDir===0) sortStore = null;
-  } else { sortStore = storeId; sortDir = 1; }
-  renderStock();
-}
-
-function toggleShowHidden() {
-  showHidden = !showHidden;
-  document.getElementById('btn-hidden').classList.toggle('active', showHidden);
-  document.getElementById('table-wrap').classList.toggle('show-hidden', showHidden);
-}
-
-function toggleHideProd(pid) {
-  const p = products[pid]; if (!p) return;
-  p.hidden = !p.hidden;
-  const h = getHiddenProdsSet();
-  if (p.hidden) h.add(pid); else h.delete(pid);
-  localStorage.setItem(HIDDEN_PRODS_KEY, JSON.stringify([...h]));
-  renderStock();
-}
-
-function toggleProd(pid) {
-  const p = products[pid]; if (!p) return;
-  p.hidden = !p.hidden;
-  const h = getHiddenProdsSet();
-  if (p.hidden) h.add(pid); else h.delete(pid);
-  localStorage.setItem(HIDDEN_PRODS_KEY, JSON.stringify([...h]));
-  renderAdmin(); renderStock();
-}
-
-function toggleCity(sid) {
-  const h = getHiddenCitiesSet();
-  if (h.has(sid)) h.delete(sid); else h.add(sid);
-  localStorage.setItem(HIDDEN_CITIES_KEY, JSON.stringify([...h]));
-  renderAdmin(); renderStock();
-}
-
-function showAllProducts() {
-  Object.values(products).forEach(p => { p.hidden = false; });
-  localStorage.removeItem(HIDDEN_PRODS_KEY);
-  renderAdmin(); renderStock();
-}
-function hideAllProducts() {
-  const h = new Set();
+function showAllProducts(){Object.values(products).forEach(p=>{p.hidden=false;});localStorage.removeItem(HIDDEN_PRODS_KEY);scheduleSave();renderAdmin();renderStock();}
+function hideAllProducts(){
+  const h=new Set();
   Object.values(products).filter(p=>p.iblockId==MAIN_IBLOCK_ID).forEach(p=>{p.hidden=true;h.add(p.id);});
-  localStorage.setItem(HIDDEN_PRODS_KEY, JSON.stringify([...h]));
-  renderAdmin(); renderStock();
+  localStorage.setItem(HIDDEN_PRODS_KEY,JSON.stringify([...h]));scheduleSave();renderAdmin();renderStock();
 }
-function showAllCities() {
-  localStorage.removeItem(HIDDEN_CITIES_KEY);
-  renderAdmin(); renderStock();
-}
+function showAllCities(){localStorage.removeItem(HIDDEN_CITIES_KEY);scheduleSave();renderAdmin();renderStock();}
 
-function reloadData() {
-  if (refreshTimer) clearInterval(refreshTimer);
-  sessionStorage.removeItem('inv_sales_v1');
-  salesData = undefined; salesLoading = false;
-  stores=[]; products={}; sections={}; stock={};
-  show('loading');
-  document.getElementById('progress').style.width = '0';
-  loadAll();
+function reloadData(){
+  if(refreshTimer) clearInterval(refreshTimer);
+  sessionStorage.removeItem('inv_sales_v2');
+  salesData=undefined;salesLoading=false;stores=[];products={};sections={};stock={};
+  show('loading');document.getElementById('progress').style.width='0';loadAll();
 }
 
 // ================================================================
-// API HELPERS
+// API
 // ================================================================
-async function apiGet(base, method, params) {
-  const qs = buildQS(params);
-  const r  = await fetch(base + method + (qs ? '?' + qs : ''));
-  if (!r.ok) throw new Error(method + ' HTTP ' + r.status);
+async function apiGet(base,method,params){
+  const qs=buildQS(params);
+  const r=await fetch(base+method+(qs?'?'+qs:''));
+  if(!r.ok) throw new Error(method+' HTTP '+r.status);
   return r.json();
 }
-
-async function apiBatch(cmds) {
-  const body = new URLSearchParams();
-  Object.keys(cmds).forEach(k => body.append('cmd[' + k + ']', cmds[k]));
-  const r = await fetch(WEBHOOK + 'batch', { method:'POST', body });
-  if (!r.ok) throw new Error('batch HTTP ' + r.status);
-  const j = await r.json();
-  return j.result?.result ?? j.result ?? null;
+async function apiBatch(cmds){
+  const body=new URLSearchParams();
+  Object.keys(cmds).forEach(k=>body.append('cmd['+k+']',cmds[k]));
+  const r=await fetch(WEBHOOK+'batch',{method:'POST',body});
+  if(!r.ok) throw new Error('batch HTTP '+r.status);
+  const j=await r.json();
+  return j.result?.result??j.result??null;
 }
-
-function buildQS(obj) {
-  const parts = [];
-  function enc(key, val) {
-    if (val===null||val===undefined) return;
-    if (typeof val==='object'&&!Array.isArray(val)) { Object.keys(val).forEach(k=>enc(key+'['+k+']',val[k])); }
-    else if (Array.isArray(val)) { val.forEach((v,i)=>enc(key+'['+i+']',v)); }
-    else { parts.push(encodeURIComponent(key)+'='+encodeURIComponent(val)); }
+function buildQS(obj){
+  const parts=[];
+  function enc(key,val){
+    if(val===null||val===undefined) return;
+    if(typeof val==='object'&&!Array.isArray(val)){Object.keys(val).forEach(k=>enc(key+'['+k+']',val[k]));}
+    else if(Array.isArray(val)){val.forEach((v,i)=>enc(key+'['+i+']',v));}
+    else{parts.push(encodeURIComponent(key)+'='+encodeURIComponent(val));}
   }
   Object.keys(obj||{}).forEach(k=>enc(k,obj[k]));
   return parts.join('&');
 }
 
 // ================================================================
-// RESULT EXTRACTORS (Bitrix24 26.x)
+// EXTRACTORS
 // ================================================================
-function extractArr(apiResp) {
-  if (!apiResp) return [];
-  const r = apiResp.result;
-  if (!r) return [];
-  if (Array.isArray(r)) return r;
-  for (const v of Object.values(r)) { if (Array.isArray(v)) return v; }
-  return [];
-}
-function extractArrItem(item) {
-  if (!item) return [];
-  if (Array.isArray(item)) return item;
-  for (const v of Object.values(item)) { if (Array.isArray(v)) return v; }
-  return [];
-}
-function extractItem(raw) {
-  if (!raw) return null;
-  if (raw.id !== undefined) return raw;
-  for (const v of Object.values(raw)) {
-    if (v && typeof v==='object' && !Array.isArray(v) && v.id!==undefined) return v;
-  }
-  return raw;
-}
+function extractArr(r){if(!r) return[];const x=r.result;if(!x) return[];if(Array.isArray(x)) return x;for(const v of Object.values(x)){if(Array.isArray(v)) return v;}return[];}
+function extractArrItem(item){if(!item) return[];if(Array.isArray(item)) return item;for(const v of Object.values(item)){if(Array.isArray(v)) return v;}return[];}
+function extractItem(raw){if(!raw) return null;if(raw.id!==undefined) return raw;for(const v of Object.values(raw)){if(v&&typeof v==='object'&&!Array.isArray(v)&&v.id!==undefined) return v;}return raw;}
 
 // ================================================================
 // HELPERS
 // ================================================================
-function getHiddenProdsSet()  { try{return new Set(JSON.parse(localStorage.getItem(HIDDEN_PRODS_KEY)||'[]'));}catch{return new Set();} }
-function getHiddenCitiesSet() { try{return new Set(JSON.parse(localStorage.getItem(HIDDEN_CITIES_KEY)||'[]'));}catch{return new Set();} }
-function getMyCitiesSet()     { try{return new Set(JSON.parse(localStorage.getItem(MY_CITIES_KEY)||'[]'));}catch{return new Set();} }
-function cityName(t) { return t.replace(/^Магазин (в|во) /,'').replace(/^Магазин /,''); }
-function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function fmtNum(n) { return Number(n).toLocaleString('ru-RU'); }
-function show(id) {
-  ['setup','loading','app'].forEach(s => {
-    document.getElementById(s).style.display = s===id?'flex':'none';
-  });
-}
-function setStatus(m)   { document.getElementById('load-status').textContent = m; }
-function setProgress(p) { document.getElementById('progress').style.width = Math.round(p)+'%'; }
-function updateStats(pr, st, z) {
-  document.getElementById('stat-products').textContent = pr?'Товаров: '+pr:'';
-  document.getElementById('stat-stores').textContent   = st?'Городов: '+st:'';
-  document.getElementById('stat-zeros').textContent    = z ?'Нулевых: '+z:'';
+function getHiddenProdsSet(){try{return new Set(JSON.parse(localStorage.getItem(HIDDEN_PRODS_KEY)||'[]'));}catch{return new Set();}}
+function getHiddenCitiesSet(){try{return new Set(JSON.parse(localStorage.getItem(HIDDEN_CITIES_KEY)||'[]'));}catch{return new Set();}}
+function getMyCitiesSet(){try{return new Set(JSON.parse(localStorage.getItem(MY_CITIES_KEY)||'[]'));}catch{return new Set();}}
+function cityName(t){return t.replace(/^Магазин (в|во) /,'').replace(/^Магазин /,'');}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function fmtNum(n){return Number(n).toLocaleString('ru-RU');}
+function show(id){['setup','loading','app'].forEach(s=>{document.getElementById(s).style.display=s===id?'flex':'none';});}
+function setStatus(m){document.getElementById('load-status').textContent=m;}
+function setProgress(p){document.getElementById('progress').style.width=Math.round(p)+'%';}
+function updateStats(pr,st,z){
+  document.getElementById('stat-products').textContent=pr?'Товаров: '+pr:'';
+  document.getElementById('stat-stores').textContent=st?'Городов: '+st:'';
+  document.getElementById('stat-zeros').textContent=z?'Нулевых: '+z:'';
 }
 </script>
 </body>
