@@ -327,8 +327,8 @@ tbody tr:hover .hide-btn{display:inline}
     <div class="app-brand"><i class="bi bi-boxes"></i> Склад</div>
     <nav class="tabs">
       <button class="tab-btn active" onclick="setTab('stock',this)"><i class="bi bi-table"></i> Остатки</button>
-      <button class="tab-btn" onclick="setTab('analytics',this)"><i class="bi bi-bar-chart-line"></i> Аналитика</button>
-      <button class="tab-btn" onclick="setTab('runout',this)"><i class="bi bi-hourglass-split"></i> Дефицит</button>
+      <button class="tab-btn" id="tab-analytics-btn" onclick="setTab('analytics',this)"><i class="bi bi-bar-chart-line"></i> Аналитика</button>
+      <button class="tab-btn" id="tab-runout-btn" onclick="setTab('runout',this)"><i class="bi bi-hourglass-split"></i> Дефицит</button>
       <button class="tab-btn" id="tab-admin-btn" onclick="setTab('admin',this)"><i class="bi bi-sliders"></i> Управление</button>
     </nav>
     <div class="header-actions">
@@ -741,8 +741,11 @@ function applyRoleUI() {
   const roleNames = {admin:'Администратор',director:'Директор',regional:'Рег. руководитель',operator:'Оператор КЦ'};
   document.getElementById('role-badge').textContent = roleNames[userRole] || userRole;
   const canManage = userRole==='admin'||userRole==='director';
-  if (!canManage) document.getElementById('tab-admin-btn').style.display='none';
-  if (canManage)  document.getElementById('profiles-section').style.display='';
+  const canAnalytics = userRole!=='operator';
+  if (!canManage)    document.getElementById('tab-admin-btn').style.display='none';
+  if (canManage)     document.getElementById('profiles-section').style.display='';
+  if (!canAnalytics) document.getElementById('tab-analytics-btn').style.display='none';
+  if (!canAnalytics) document.getElementById('tab-runout-btn').style.display='none';
 }
 
 async function loadProducts(ids) {
