@@ -295,7 +295,9 @@ tbody tr:hover .hide-btn{display:inline}
     <div class="form-group">
       <label class="form-label">Роль</label>
       <div class="pm-roles">
-        <label class="pm-role-opt"><input type="radio" name="pm-role" value="regional" checked> Региональный руководитель — видит свои города, аналитику</label>
+        <label class="pm-role-opt"><input type="radio" name="pm-role" value="admin"> Администратор — полный доступ, управление профилями</label>
+        <label class="pm-role-opt"><input type="radio" name="pm-role" value="director"> Директор — все города, аналитика, без управления</label>
+        <label class="pm-role-opt"><input type="radio" name="pm-role" value="regional" checked> Рег. руководитель — свои города, аналитика</label>
         <label class="pm-role-opt"><input type="radio" name="pm-role" value="operator"> Оператор КЦ — только просмотр остатков</label>
       </div>
     </div>
@@ -1342,7 +1344,7 @@ function saveLocalProfiles(arr){localStorage.setItem(PROFILES_KEY,JSON.stringify
 
 function renderProfiles(){
   const profiles=getProfiles();
-  const roleLabels={regional:'Рег. руководитель',operator:'Оператор КЦ'};
+  const roleLabels={admin:'Администратор',director:'Директор',regional:'Рег. руководитель',operator:'Оператор КЦ'};
   document.getElementById('profiles-list').innerHTML=profiles.length
     ?profiles.map(p=>`
       <div class="profile-row">
