@@ -449,6 +449,18 @@ tbody tr:hover .hide-btn{display:inline}
             Изменения в разделах «Товары» и «Города» (<strong>скрыть/показать</strong>) автоматически сохраняются в Битрикс24 и применяются для всех пользователей при следующей загрузке приложения.
           </div>
         </div>
+
+        <!-- CRM Diagnostic -->
+        <div class="admin-section">
+          <div class="admin-section-header">
+            <span class="admin-section-title">
+              <i class="bi bi-bug"></i> Диагностика данных CRM
+              <span class="help-tip" data-tip="Проверяет 5 последних закрытых сделок:\n• Правильно ли читается поле UF_CRM_SHOP (привязка к складу)\n• Совпадают ли ID товаров в сделках с ID в каталоге склада\n\nЕсли ID не совпадают — данные о продажах считаются неверно.">?</span>
+            </span>
+            <button class="btn-sm" onclick="runCrmDiagnostic()"><i class="bi bi-play-circle"></i> Запустить проверку</button>
+          </div>
+          <div id="diag-output" style="padding:10px 15px;font-size:12px;color:var(--muted)">Нажмите «Запустить проверку» для анализа данных</div>
+        </div>
       </div>
     </div>
   </div>
@@ -1529,6 +1541,94 @@ function cityName(t){return t.replace(/^Магазин (в|во) /,'').replace(/
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function fmtNum(n){return Number(n).toLocaleString('ru-RU');}
 function show(id){['setup','loading','app'].forEach(s=>{document.getElementById(s).style.display=s===id?'flex':'none';});}
+
+// ================================================================
+// CRM DIAGNOSTIC
+// ================================================================
+async function runCrmDiagnostic() {
+  const el = document.getElementById('diag-output');
+  el.innerHTML = '<div style="display:flex;align-items:center;gap:8px"><div class="spinner"></div> Загружаем данные...</div>';
+  try {
+    const since = new Date();
+    since.setDate(since.getDate()-90);
+    const resp = await apiGet(WEBHOOK,'crm.deal.list',{
+      'filter[STAGE_SEMANTIC_ID]':'S',
+      'filter[>=CLOSEDATE]':since.toISOString().slice(0,10),
+      'select[0]':'ID','select[1]':'UF_CRM_SHOP','select[2]':'TITLE','select[3]':'CLOSEDATE',
+      'order[CLOSEDATE]':'DESC', start:0
+    });
+    const deals = extractArr(resp).slice(0,5);
+    if(!deals.length){el.innerHTML='<p>Нет закрытых сделок за 90 дней с нужными данными.</p>';return;}
+
+    // Load product rows for these 5 deals
+    const cmds={};
+    deals.forEach(d=>{cmds['d'+(d.ID||d.id)]='crm.deal.productrows.get?id='+(d.ID||d.id);});
+    const rowsRes = await apiBatch(cmds);
+
+    // Also load 3 raw catalog.storeproduct.list entries to compare IDs
+    const stockSample = await apiGet(WEBHOOK,'catalog.storeproduct.list',{
+      'select[0]':'PRODUCT_ID','select[1]':'STORE_ID','select[2]':'AMOUNT',start:0
+    });
+    const stockRows = extractArr(stockSample).slice(0,3);
+
+    let html='<div style="margin-bottom:12px;padding:8px 10px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;font-size:11px">';
+    html+='<b>Как читать:</b> Если «ID в складе?» = ❌ — ID товара из сделки не совпадает с ID в каталоге склада → данные считаются неверно.<br>';
+    html+='Если «Склад» = ❌ не найдено — значение поля UF_CRM_SHOP не совпадает ни с одним складом.';
+    html+='</div>';
+
+    html+='<b>5 последних закрытых сделок:</b><br><br>';
+    html+='<table class="a-table" style="font-size:11px;width:100%"><thead><tr>';
+    html+='<th>#Сделка</th><th>UF_CRM_SHOP (сырое)</th><th>→ Склад</th><th>PRODUCT_ID</th><th>Название в сделке</th><th>Кол-во</th><th>ID в складе?</th></tr></thead><tbody>';
+
+    deals.forEach(d=>{
+      const did=String(d.ID||d.id);
+      const shopRaw=d.UF_CRM_SHOP!==undefined?String(d.UF_CRM_SHOP):'(не задано)';
+      const resolvedId=resolveShop(d.UF_CRM_SHOP);
+      const storeName=resolvedId?(stores.find(s=>String(s.id)===resolvedId)?.title||'ID:'+resolvedId):'❌ не найдено';
+      const storeColor=resolvedId?'#166534':'#dc2626';
+      const rows=extractArrItem(rowsRes?.['d'+did]||[]);
+
+      if(!rows.length){
+        html+=`<tr><td>#${did}</td><td style="font-family:monospace">${esc(shopRaw)}</td>`;
+        html+=`<td style="color:${storeColor}">${esc(storeName)}</td>`;
+        html+=`<td colspan="4" style="color:var(--muted);font-style:italic">Нет товаров в сделке</td></tr>`;
+      } else {
+        rows.forEach((row,ri)=>{
+          const pid=String(row.PRODUCT_ID||row.productId||'0');
+          const pname=String(row.PRODUCT_NAME||row.productName||'—');
+          const qty=row.QUANTITY||row.quantity||'—';
+          const inStock=stock[pid]!==undefined?'✅':'❌';
+          const catalogMatch=products[pid]?.name||'';
+          if(ri===0){
+            html+=`<tr><td rowspan="${rows.length}">#${did}<br><small style="color:var(--muted)">${(d.CLOSEDATE||'').slice(0,10)}</small></td>`;
+            html+=`<td rowspan="${rows.length}" style="font-family:monospace">${esc(shopRaw)}</td>`;
+            html+=`<td rowspan="${rows.length}" style="color:${storeColor}">${esc(storeName)}</td>`;
+          } else {html+=`<tr>`;}
+          html+=`<td style="font-family:monospace">${esc(pid)}</td>`;
+          html+=`<td title="${esc(pname)}">${esc(pname.length>30?pname.slice(0,30)+'…':pname)}</td>`;
+          html+=`<td style="text-align:right">${qty}</td>`;
+          html+=`<td>${inStock}${catalogMatch?`<br><small style="color:#166534">${esc(catalogMatch.slice(0,25))}</small>`:'<br><small style="color:#dc2626">нет в каталоге</small>'}</td></tr>`;
+        });
+      }
+    });
+    html+='</tbody></table>';
+
+    html+=`<br><b>Пример строк из catalog.storeproduct.list (для сравнения ID):</b><br>`;
+    html+='<table class="a-table" style="font-size:11px"><thead><tr><th>PRODUCT_ID</th><th>STORE_ID</th><th>AMOUNT</th><th>Название в каталоге</th></tr></thead><tbody>';
+    stockRows.forEach(r=>{
+      const pid=String(r.productId??r.PRODUCT_ID);
+      const sid=String(r.storeId??r.STORE_ID);
+      const amt=r.amount??r.AMOUNT;
+      const name=products[pid]?.name||'(не загружен)';
+      html+=`<tr><td style="font-family:monospace">${esc(pid)}</td><td style="font-family:monospace">${esc(sid)}</td><td style="text-align:right">${amt}</td><td>${esc(name)}</td></tr>`;
+    });
+    html+='</tbody></table>';
+
+    el.innerHTML=html;
+  } catch(e) {
+    el.innerHTML=`<p style="color:#dc2626">Ошибка: ${esc(e.message)}</p>`;
+  }
+}
 function setStatus(m){document.getElementById('load-status').textContent=m;}
 function setProgress(p){document.getElementById('progress').style.width=Math.round(p)+'%';}
 function updateStats(pr,st,z){
