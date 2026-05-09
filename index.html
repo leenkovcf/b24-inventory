@@ -749,7 +749,7 @@ let salesStatus='';
 let salesDealsTotal=0, salesDealsMatched=0, salesMatchRate=0;
 async function loadSalesData() {
   if (salesLoading) return;
-  const cached = sessionStorage.getItem('inv_sales_v4');
+  const cached = sessionStorage.getItem('inv_sales_v5');
   if (cached) {
     try { salesData=JSON.parse(cached); if(currentTab==='analytics')renderAnalytics(); return; } catch(e){}
   }
@@ -761,30 +761,35 @@ async function loadSalesData() {
     since.setDate(since.getDate()-SALES_DAYS);
     const dateStr = since.toISOString().slice(0,10);
 
-    // Load deals - filter server-side to only those with UF_CRM_SHOP set
+    const MAX_DEALS = 5000; // cap to avoid eternal loading at 28k+ deals
     const firstResp = await apiGet(WEBHOOK,'crm.deal.list',{
       'filter[STAGE_SEMANTIC_ID]':'S','filter[>=CLOSEDATE]':dateStr,
-      'filter[!UF_CRM_SHOP]':'',
-      'select[0]':'ID','select[1]':'UF_CRM_SHOP', start:0
+      'select[0]':'ID','select[1]':'UF_CRM_SHOP',
+      'order[CLOSEDATE]':'DESC', start:0
     });
     if (firstResp.error) { salesData=null; salesLoading=false; if(currentTab==='analytics')renderAnalytics(); return; }
 
-    // Load ALL deals (no UF_CRM_SHOP filter - it may be empty)
     const deals = [...extractArr(firstResp)];
     const total = parseInt(firstResp.total)||0;
-    if (total>50) {
+    const toLoad = Math.min(total, MAX_DEALS);
+    if (total > MAX_DEALS) {
+      salesStatus = `Загружаем последние ${MAX_DEALS} из ${total} сделок...`;
+      if(currentTab==='analytics'){const el=document.querySelector('.sales-spinner-text');if(el)el.textContent=salesStatus;}
+    }
+    if (toLoad > 50) {
       const starts=[];
-      for(let s=50;s<total;s+=50) starts.push(s);
+      for(let s=50;s<toLoad;s+=50) starts.push(s);
       for(let i=0;i<starts.length;i+=49){
         const chunk=starts.slice(i,i+49); const cmds={};
-        chunk.forEach((s,idx)=>{cmds['r'+idx]='crm.deal.list?filter[STAGE_SEMANTIC_ID]=S&filter[>=CLOSEDATE]='+dateStr+'&select[0]=ID&select[1]=UF_CRM_SHOP&start='+s;});
+        chunk.forEach((s,idx)=>{cmds['r'+idx]='crm.deal.list?filter[STAGE_SEMANTIC_ID]=S&filter[%3E%3DCLOSEDATE]='+dateStr+'&select[0]=ID&select[1]=UF_CRM_SHOP&order[CLOSEDATE]=DESC&start='+s;});
         const res=await apiBatch(cmds);
         if(res) Object.values(res).forEach(item=>deals.push(...extractArrItem(item)));
       }
     }
+    if(deals.length > MAX_DEALS) deals.length = MAX_DEALS;
 
     salesData = {};
-    if (!deals.length) { sessionStorage.setItem('inv_sales_v4',JSON.stringify(salesData)); salesLoading=false; if(currentTab==='analytics')renderAnalytics(); return; }
+    if (!deals.length) { sessionStorage.setItem('inv_sales_v5',JSON.stringify(salesData)); salesLoading=false; if(currentTab==='analytics')renderAnalytics(); return; }
 
     // '__ALL__' = company-wide bucket when UF_CRM_SHOP is not filled
     const GLOBAL_STORE='__ALL__';
@@ -852,7 +857,7 @@ async function loadSalesData() {
         });
       });
     }
-    sessionStorage.setItem('inv_sales_v4',JSON.stringify(salesData));
+    sessionStorage.setItem('inv_sales_v5',JSON.stringify(salesData));
   } catch(e) {
     console.warn('CRM unavailable:',e.message);
     salesData=null;
@@ -1540,7 +1545,7 @@ function showAllCities(){localStorage.removeItem(HIDDEN_CITIES_KEY);scheduleSave
 
 function reloadData(){
   if(refreshTimer) clearInterval(refreshTimer);
-  sessionStorage.removeItem('inv_sales_v4');
+  sessionStorage.removeItem('inv_sales_v5');
   salesData=undefined;salesLoading=false;stores=[];products={};sections={};stock={};
   show('loading');document.getElementById('progress').style.width='0';loadAll();
 }
@@ -1604,7 +1609,7 @@ async function runCrmDiagnostic() {
     const resp = await apiGet(WEBHOOK,'crm.deal.list',{
       'filter[STAGE_SEMANTIC_ID]':'S',
       'filter[>=CLOSEDATE]':since.toISOString().slice(0,10),
-      'select[0]':'*',
+      'select[0]':'*','select[1]':'UF_*',
       'order[CLOSEDATE]':'DESC', start:0
     });
     const deals = extractArr(resp).slice(0,5);
@@ -1621,15 +1626,23 @@ async function runCrmDiagnostic() {
     });
     const stockRows = extractArr(stockSample).slice(0,3);
 
-    // Show all non-empty UF_* fields from first deal to find the store field
+    // Show UF_* fields from first deal — filled ones and all names
     const firstDeal=deals[0]||{};
     const ufFields=Object.entries(firstDeal).filter(([k,v])=>k.startsWith('UF_')&&v!=null&&v!==''&&v!==false&&String(v)!=='0');
+    const ufAllKeys=Object.keys(firstDeal).filter(k=>k.startsWith('UF_'));
 
     let html='<div style="margin-bottom:12px;padding:8px 10px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;font-size:11px">';
     html+=`<b>Сделок за 90 дней: ${resp.total||0}</b><br>`;
-    html+=ufFields.length
-      ?`Пользовательские поля (UF_*) с данными: <b>${ufFields.map(([k,v])=>`${k} = ${esc(String(v).slice(0,30))}`).join(' | ')}</b>`
-      :`<span style="color:#dc2626">Все UF_* поля пустые в этой сделке — поле склада/города не заполняется.</span>`;
+    if(ufFields.length){
+      html+=`Пользовательские поля с данными: <b>${ufFields.map(([k,v])=>`${k} = ${esc(String(v).slice(0,30))}`).join(' | ')}</b>`;
+    } else {
+      html+=`<span style="color:#dc2626">UF_* поля без значений в последней сделке.</span>`;
+      if(ufAllKeys.length){
+        html+=`<br>Все UF поля в сделке (пустые): <span style="color:#6b7280">${ufAllKeys.join(', ')}</span>`;
+      } else {
+        html+=`<br><span style="color:#dc2626">UF поля вообще не возвращаются API — возможно webhook не имеет доступа к пользовательским полям.</span>`;
+      }
+    }
     html+='</div>';
 
     // Build name lookup for diagnostic
