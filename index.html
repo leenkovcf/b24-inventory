@@ -735,7 +735,7 @@ function initSelectedCats() {
 // ================================================================
 async function loadSalesData() {
   if (salesLoading) return;
-  const cached = sessionStorage.getItem('inv_sales_v2');
+  const cached = sessionStorage.getItem('inv_sales_v3');
   if (cached) {
     try { salesData=JSON.parse(cached); if(currentTab==='analytics')renderAnalytics(); return; } catch(e){}
   }
@@ -753,7 +753,7 @@ async function loadSalesData() {
     if (firstResp.error) { salesData=null; salesLoading=false; if(currentTab==='analytics')renderAnalytics(); return; }
 
     const deals = [...extractArr(firstResp)];
-    const total = Math.min(parseInt(firstResp.total)||0, 500);
+    const total = parseInt(firstResp.total)||0;
     if (total>50) {
       const starts=[];
       for(let s=50;s<total;s+=50) starts.push(s);
@@ -766,7 +766,10 @@ async function loadSalesData() {
     }
 
     salesData = {};
-    if (!deals.length) { sessionStorage.setItem('inv_sales_v2',JSON.stringify(salesData)); salesLoading=false; if(currentTab==='analytics')renderAnalytics(); return; }
+    if (!deals.length) { sessionStorage.setItem('inv_sales_v3',JSON.stringify(salesData)); salesLoading=false; if(currentTab==='analytics')renderAnalytics(); return; }
+
+    // Build a Map for O(1) lookup instead of O(n²) find()
+    const dealMap = new Map(deals.map(d=>[String(d.ID||d.id), d]));
 
     for(let i=0;i<deals.length;i+=49){
       const chunk=deals.slice(i,i+49); const cmds={};
@@ -775,7 +778,7 @@ async function loadSalesData() {
       if(res){
         Object.entries(res).forEach(([key,rawRows])=>{
           const dealId=key.slice(1);
-          const deal=deals.find(d=>String(d.ID||d.id)===dealId);
+          const deal=dealMap.get(dealId);
           if(!deal) return;
           const storeId=resolveShop(deal.UF_CRM_SHOP||deal.ufCrmShop);
           if(!storeId) return;
@@ -790,7 +793,7 @@ async function loadSalesData() {
         });
       }
     }
-    sessionStorage.setItem('inv_sales_v2',JSON.stringify(salesData));
+    sessionStorage.setItem('inv_sales_v3',JSON.stringify(salesData));
   } catch(e) {
     console.warn('CRM unavailable:',e.message);
     salesData=null;
@@ -997,7 +1000,7 @@ function renderAnalytics(){
     }).sort((a,b)=>b.velocity-a.velocity);
 
     const strongCities=cityVelocity.slice(0,10);
-    const weakCities=[...cityVelocity].sort((a,b)=>a.velocity-b.velocity).slice(0,10);
+    const weakCities=[...cityVelocity].filter(c=>c.velocity>0).sort((a,b)=>a.velocity-b.velocity).slice(0,10);
     const top15=prodSales.slice(0,15);
 
     const abcRows=['A','B','C'].flatMap(cls=>
@@ -1148,11 +1151,11 @@ function renderAnalytics(){
       <div class="kpi-card ${coverage<60?'warn':'ok'}"><div class="kpi-label">Покрытие складов <span class="help-tip" data-tip="${TIP_KPI_COV}">?</span></div><div class="kpi-value">${coverage}%</div><div class="kpi-sub">&gt;${LOW_STOCK} шт. на складе</div></div>
       <div class="kpi-card warn"><div class="kpi-label">Нулевых позиций</div><div class="kpi-value">${fmtNum(zeroCnt)}</div><div class="kpi-sub">товар × город = 0</div></div>
     </div>
-    ${salesHTML}
     <div class="a-table-wrap">
       <div class="a-table-title"><i class="bi bi-map"></i> Карта городов по складским остаткам <span class="help-tip" data-tip="${TIP_CITY_GRID}">?</span></div>
       <div class="city-grid">${cityGridHTML}</div>
-    </div>`;
+    </div>
+    ${salesHTML}`;
 }
 
 // ================================================================
@@ -1440,7 +1443,7 @@ function showAllCities(){localStorage.removeItem(HIDDEN_CITIES_KEY);scheduleSave
 
 function reloadData(){
   if(refreshTimer) clearInterval(refreshTimer);
-  sessionStorage.removeItem('inv_sales_v2');
+  sessionStorage.removeItem('inv_sales_v3');
   salesData=undefined;salesLoading=false;stores=[];products={};sections={};stock={};
   show('loading');document.getElementById('progress').style.width='0';loadAll();
 }
