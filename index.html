@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Остатки по городам</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, sans-serif; font-size: 13px; background: #f0f2f5; color: #333; }
+
+/* ---- LOADING ---- */
+#loading {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100vh; gap: 16px;
+}
+.spinner {
+  width: 40px; height: 40px;
+  border: 4px solid #ddd; border-top-color: #2563eb;
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#load-status { color: #555; font-size: 14px; }
+.progress-bar-wrap { width: 280px; height: 6px; background: #ddd; border-radius: 3px; }
+.progress-bar { height: 100%; background: #2563eb; border-radius: 3px; transition: width 0.3s; width: 0; }
+
+/* ---- LAYOUT ---- */
+#app { display: none; height: 100vh; flex-direction: column; }
+
+/* ---- TOOLBAR ---- */
+.toolbar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 8px 12px; background: #fff; border-bottom: 1px solid #ddd;
+  position: sticky; top: 0; z-index: 200;
+}
+.toolbar input[type=text] {
+  padding: 5px 10px; border: 1px solid #ccc; border-radius: 4px;
+  font-size: 12px; width: 175px;
+}
+.toolbar input[type=text]:focus { outline: none; border-color: #2563eb; }
+.btn {
+  padding: 5px 12px; border: 1px solid #ccc; border-radius: 4px;
+  background: #fff; font-size: 12px; cursor: pointer; white-space: nowrap;
+}
+.btn:hover { background: #f0f0f0; }
+.btn-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-active { background: #e0e7ff; border-color: #6366f1; color: #4338ca; }
+#last-update { color: #999; font-size: 11px; margin-left: auto; white-space: nowrap; }
+.admin-badge {
+  display: inline-block; padding: 2px 8px; background: #fef3c7;
+  border: 1px solid #fbbf24; border-radius: 10px; font-size: 11px; color: #92400e;
+}
+
+/* ---- TABLE WRAPPER ---- */
+.table-wrap { flex: 1; overflow: auto; }
+
+/* ---- MAIN TABLE ---- */
+table { border-collapse: collapse; background: #fff; }
+
+thead th {
+  background: #1e3a5f; color: #fff;
+  padding: 4px 6px; border: 1px solid #2d5282;
+  font-size: 11px; font-weight: 600; white-space: nowrap;
+  position: sticky; top: 0; z-index: 100;
+}
+thead th.product-col {
+  position: sticky; left: 0; top: 0; z-index: 150;
+  min-width: 200px; text-align: left;
+}
+thead th.store-col {
+  writing-mode: vertical-lr; transform: rotate(180deg);
+  height: 110px; text-align: left; vertical-align: bottom;
+  cursor: default;
+}
+thead th.total-col { text-align: center; min-width: 55px; }
+
+tbody tr { transition: background 0.1s; }
+tbody tr:hover td { filter: brightness(0.95); }
+tbody tr.hidden-row { display: none; }
+.show-hidden tbody tr.hidden-row { display: table-row; }
+.show-hidden tbody tr.hidden-row td { opacity: 0.4; }
+
+tbody td {
+  border: 1px solid #e5e7eb; padding: 4px 6px;
+  text-align: right; white-space: nowrap;
+}
+tbody td.product-col {
+  position: sticky; left: 0; background: #f8fafc;
+  text-align: left; z-index: 50;
+  font-size: 12px; border-right: 2px solid #cbd5e1;
+  max-width: 240px; white-space: normal; word-break: break-word;
+}
+tbody td.amount-ok   { background: #dcfce7; color: #166534; }
+tbody td.amount-low  { background: #fef9c3; color: #854d0e; }
+tbody td.amount-zero { background: #fee2e2; color: #991b1b; font-weight: 700; }
+tbody td.amount-na   { background: #f9fafb; color: #d1d5db; }
+tbody td.total-col   { background: #e0f2fe; font-weight: 700; color: #0369a1; }
+
+.hide-btn {
+  margin-left: 6px; font-size: 11px; cursor: pointer;
+  color: #94a3b8; border: none; background: none; padding: 0 2px;
+  vertical-align: middle; display: none;
+}
+tbody tr:hover .hide-btn { display: inline; }
+.hide-btn:hover { color: #dc2626; }
+.hidden-label {
+  display: inline-block; font-size: 10px; padding: 1px 5px;
+  background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 3px;
+  color: #64748b; margin-left: 4px; vertical-align: middle;
+}
+
+/* ---- SUMMARY BAR ---- */
+.summary {
+  padding: 6px 12px; background: #f8fafc; border-top: 1px solid #e5e7eb;
+  font-size: 12px; color: #555; display: flex; gap: 20px; flex-wrap: wrap;
+  align-items: center;
+}
+.summary span { display: flex; align-items: center; gap: 5px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.dot-ok   { background: #22c55e; }
+.dot-low  { background: #eab308; }
+.dot-zero { background: #ef4444; }
+
+/* ---- NO DATA ---- */
+.no-data { padding: 40px; text-align: center; color: #999; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div id="loading">
+  <div class="spinner"></div>
+  <div id="load-status">Подключаемся к Битрикс24...</div>
+  <div class="progress-bar-wrap"><div class="progress-bar" id="progress"></div></div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="toolbar">
+    <input type="text" id="q-product" placeholder="🔍 Поиск по товару" oninput="applyFilters()">
+    <input type="text" id="q-city"    placeholder="🔍 Поиск по городу"  oninput="applyFilters()">
+    <button class="btn" id="btn-hidden" onclick="toggleShowHidden()">Скрытые товары</button>
+    <button class="btn btn-primary" onclick="reload()">↻ Обновить</button>
+    <div id="admin-controls" style="display:none">
+      <span class="admin-badge">⚙ Администратор</span>
+    </div>
+    <span id="last-update"></span>
+  </div>
+
+  <div class="table-wrap" id="table-wrap">
+    <table id="tbl">
+      <thead id="tbl-head"></thead>
+      <tbody id="tbl-body"></tbody>
+    </table>
+    <div class="no-data" id="no-data" style="display:none">Нет данных по выбранным фильтрам</div>
+  </div>
+
+  <div class="summary">
+    <span><span class="dot dot-ok"></span>В наличии (&gt;5 шт)</span>
+    <span><span class="dot dot-low"></span>Мало (1–5 шт)</span>
+    <span><span class="dot dot-zero"></span>Нет (0 шт)</span>
+    <span id="stat-products"></span>
+    <span id="stat-stores"></span>
+    <span id="stat-zeros"></span>
+  </div>
+</div>
+
+<script src="https://api.bitrix24.com/api/v1/"></script>
+<script>
+// ================================================================
+// CONFIG
+// ================================================================
+const LOW_STOCK      = 5;
+const SKIP_STORES    = ['Склад производства', 'В пути'];
+const MAIN_IBLOCK_ID = 14;   // Товарный каталог CRM
+const HIDDEN_KEY     = 'inv_hidden_v1';
+
+// ================================================================
+// STATE
+// ================================================================
+let stores   = [];     // [{id, title}]
+let products = {};     // id → {id, name, hidden, iblockId}
+let stock    = {};     // productId → {storeId → amount}
+let isAdmin  = false;
+let showHidden = false;
+
+// ================================================================
+// INIT
+// ================================================================
+BX24.init(async function() {
+  try {
+    setProgress(5);
+    setStatus('Получаем данные пользователя...');
+    const user = await bxCall('user.current', {});
+    isAdmin = !!user.ADMIN;
+    if (isAdmin) document.getElementById('admin-controls').style.display = 'inline-flex';
+    setProgress(10);
+    await loadAll();
+  } catch(e) {
+    setStatus('Ошибка загрузки: ' + (e.message || JSON.stringify(e)));
+  }
+});
+
+// ================================================================
+// LOAD ALL DATA
+// ================================================================
+async function loadAll() {
+  setStatus('Загружаем список складов...');
+  const rawStores = await fetchAll('catalog.store.list', {
+    select: ['ID', 'TITLE', 'ACTIVE'],
+    filter: { ACTIVE: 'Y' }
+  }, 10, 30);
+
+  stores = rawStores
+    .filter(s => !SKIP_STORES.includes(s.title))
+    .sort((a, b) => cityName(a.title).localeCompare(cityName(b.title), 'ru'));
+
+  setStatus('Загружаем остатки со складов...');
+  const rawStock = await fetchAll('catalog.storeproduct.list', {
+    select: ['PRODUCT_ID', 'STORE_ID', 'AMOUNT', 'QUANTITY_RESERVED']
+  }, 30, 70);
+
+  stock = {};
+  const productIds = new Set();
+  rawStock.forEach(r => {
+    const pid = String(r.productId);
+    const sid = String(r.storeId);
+    if (!stock[pid]) stock[pid] = {};
+    stock[pid][sid] = parseFloat(r.amount) || 0;
+    productIds.add(pid);
+  });
+
+  setStatus(`Загружаем названия ${productIds.size} товаров...`);
+  await loadProducts([...productIds]);
+
+  setProgress(100);
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('last-update').textContent =
+    'Обновлено: ' + new Date().toLocaleTimeString('ru-RU');
+  render();
+}
+
+async function loadProducts(ids) {
+  const hidden = getHiddenSet();
+  for (let i = 0; i < ids.length; i += 50) {
+    const chunk = ids.slice(i, i + 50);
+    const batch = {};
+    chunk.forEach(id => { batch['p' + id] = ['catalog.product.get', { id: parseInt(id) }]; });
+    const res = await bxBatch(batch);
+    Object.values(res).forEach(item => {
+      if (!item || !item.id) return;
+      products[String(item.id)] = {
+        id:       String(item.id),
+        name:     item.name || '(без названия)',
+        iblockId: item.iblockId,
+        hidden:   hidden.has(String(item.id))
+      };
+    });
+    setProgress(70 + 25 * ((i + 50) / ids.length));
+  }
+}
+
+// ================================================================
+// GENERIC PAGINATED FETCH (uses batch for speed)
+// ================================================================
+async function fetchAll(method, params, progStart, progEnd) {
+  const first = await bxCallFull(method, { ...params, start: 0 });
+  const results = [...(first.data || [])];
+  const total   = first.total || 0;
+  setProgress(progStart + (progEnd - progStart) * 0.2);
+
+  if (total <= 50) {
+    setProgress(progEnd);
+    return results;
+  }
+
+  const starts = [];
+  for (let s = 50; s < total; s += 50) starts.push(s);
+
+  const BATCH_SZ = 50;
+  for (let i = 0; i < starts.length; i += BATCH_SZ) {
+    const chunk = starts.slice(i, i + BATCH_SZ);
+    const batch = {};
+    chunk.forEach((s, idx) => {
+      batch['r' + idx] = [method, { ...params, start: s }];
+    });
+    const res = await bxBatch(batch);
+    Object.values(res).forEach(items => {
+      if (Array.isArray(items)) results.push(...items);
+    });
+    const pct = progStart + (progEnd - progStart) * ((i + BATCH_SZ) / starts.length);
+    setProgress(Math.min(pct, progEnd));
+  }
+  return results;
+}
+
+// ================================================================
+// RENDER TABLE
+// ================================================================
+function render() {
+  const cityQ = document.getElementById('q-city').value.toLowerCase().trim();
+  const prodQ = document.getElementById('q-product').value.toLowerCase().trim();
+
+  const visStores = cityQ
+    ? stores.filter(s => cityName(s.title).toLowerCase().includes(cityQ))
+    : stores;
+
+  const visProducts = Object.values(products)
+    .filter(p => p.iblockId == MAIN_IBLOCK_ID)
+    .filter(p => !prodQ || p.name.toLowerCase().includes(prodQ))
+    .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+
+  const tbl   = document.getElementById('tbl');
+  const noData = document.getElementById('no-data');
+
+  if (visProducts.length === 0 || visStores.length === 0) {
+    tbl.style.display = 'none';
+    noData.style.display = 'block';
+    updateStats(0, 0, 0);
+    return;
+  }
+  tbl.style.display = '';
+  noData.style.display = 'none';
+
+  // THEAD
+  let headHtml = '<tr>';
+  headHtml += '<th class="product-col">Товар</th>';
+  visStores.forEach(s => {
+    headHtml += `<th class="store-col" title="${escHtml(s.title)}">${escHtml(cityName(s.title))}</th>`;
+  });
+  headHtml += '<th class="total-col">Итого</th></tr>';
+  document.getElementById('tbl-head').innerHTML = headHtml;
+
+  // TBODY
+  let zeros = 0;
+  let bodyHtml = '';
+
+  visProducts.forEach(p => {
+    bodyHtml += `<tr class="${p.hidden ? 'hidden-row' : ''}">`;
+
+    // Product name cell
+    bodyHtml += `<td class="product-col">${escHtml(p.name)}`;
+    if (isAdmin) {
+      bodyHtml += ` <button class="hide-btn" onclick="toggleHideProduct('${p.id}')" ` +
+        `title="${p.hidden ? 'Показать' : 'Скрыть'}">${p.hidden ? '&#128065;' : '&#10005;'}</button>`;
+    }
+    if (p.hidden) bodyHtml += ' <span class="hidden-label">скрыт</span>';
+    bodyHtml += '</td>';
+
+    let rowTotal = 0;
+    visStores.forEach(s => {
+      const sid = String(s.id);
+      const hasProd = stock[p.id] !== undefined;
+      const amt = hasProd && stock[p.id][sid] !== undefined ? stock[p.id][sid] : null;
+
+      rowTotal += (amt || 0);
+      let cls, disp;
+      if (amt === null)       { cls = 'amount-na'; disp = ''; }
+      else if (amt === 0)     { cls = 'amount-zero'; disp = '—'; zeros++; }
+      else if (amt <= LOW_STOCK) { cls = 'amount-low'; disp = amt; }
+      else                    { cls = 'amount-ok'; disp = amt; }
+
+      bodyHtml += `<td class="${cls}" title="${escHtml(s.title)}: ${amt !== null ? amt : 'нет данных'}">${disp}</td>`;
+    });
+
+    bodyHtml += `<td class="total-col">${rowTotal}</td>`;
+    bodyHtml += '</tr>';
+  });
+
+  document.getElementById('tbl-body').innerHTML = bodyHtml;
+  document.getElementById('table-wrap').classList.toggle('show-hidden', showHidden);
+  updateStats(visProducts.length, visStores.length, zeros);
+}
+
+function updateStats(prods, strs, zeros) {
+  document.getElementById('stat-products').textContent = prods ? `Товаров: ${prods}` : '';
+  document.getElementById('stat-stores').textContent   = strs  ? `Городов: ${strs}` : '';
+  document.getElementById('stat-zeros').textContent    = zeros ? `Нулевых позиций: ${zeros}` : '';
+}
+
+// ================================================================
+// ACTIONS
+// ================================================================
+function applyFilters() { render(); }
+
+function toggleShowHidden() {
+  showHidden = !showHidden;
+  document.getElementById('btn-hidden').classList.toggle('btn-active', showHidden);
+  document.getElementById('table-wrap').classList.toggle('show-hidden', showHidden);
+}
+
+function toggleHideProduct(pid) {
+  if (!isAdmin) return;
+  const p = products[pid];
+  if (!p) return;
+  p.hidden = !p.hidden;
+  const h = getHiddenSet();
+  if (p.hidden) h.add(pid); else h.delete(pid);
+  localStorage.setItem(HIDDEN_KEY, JSON.stringify([...h]));
+  render();
+}
+
+function reload() {
+  stores = []; products = {}; stock = {};
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loading').style.display = 'flex';
+  document.getElementById('progress').style.width = '0';
+  loadAll();
+}
+
+// ================================================================
+// HELPERS
+// ================================================================
+function getHiddenSet() {
+  try { return new Set(JSON.parse(localStorage.getItem(HIDDEN_KEY) || '[]')); }
+  catch { return new Set(); }
+}
+
+function cityName(title) {
+  return title.replace(/^Магазин (в|во) /, '').replace(/^Магазин /, '');
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                  .replace(/"/g, '&quot;');
+}
+
+function setStatus(msg)   { document.getElementById('load-status').textContent = msg; }
+function setProgress(pct) { document.getElementById('progress').style.width = Math.round(pct) + '%'; }
+
+// ================================================================
+// BX24 PROMISE WRAPPERS
+// ================================================================
+function bxCall(method, params) {
+  return new Promise((resolve, reject) => {
+    BX24.callMethod(method, params, res => {
+      if (res.error()) reject(res.error()); else resolve(res.data());
+    });
+  });
+}
+
+function bxCallFull(method, params) {
+  return new Promise((resolve, reject) => {
+    BX24.callMethod(method, params, res => {
+      if (res.error()) reject(res.error());
+      else resolve({ data: res.data() || [], total: res.total() });
+    });
+  });
+}
+
+function bxBatch(batch) {
+  return new Promise(resolve => {
+    BX24.callBatch(batch, res => {
+      const out = {};
+      Object.keys(res).forEach(k => {
+        out[k] = res[k].data ? res[k].data() : null;
+      });
+      resolve(out);
+    });
+  });
+}
+</script>
+</body>
+</html>
