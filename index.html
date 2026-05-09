@@ -242,7 +242,7 @@ async function saveWebhook() {
   errEl.style.display = 'none';
   try {
     const test = await apiGet(url, 'catalog.store.list', { 'select[0]': 'ID', start: 0 });
-    if (!test || !Array.isArray(test.result)) throw new Error('Неверный ответ от API');
+    if (!test || test.result === undefined) throw new Error('Неверный ответ от API');
     WEBHOOK = url;
     localStorage.setItem(WEBHOOK_KEY, url);
     try {
@@ -317,7 +317,8 @@ async function loadProducts(ids) {
     chunk.forEach(id => { cmds['p' + id] = 'catalog.product.get?id=' + parseInt(id); });
     const res = await apiBatch(cmds);
     if (res) {
-      Object.values(res).forEach(item => {
+      Object.values(res).forEach(raw => {
+        const item = extractItem(raw);
         if (!item || !item.id) return;
         products[String(item.id)] = {
           id: String(item.id), name: item.name || '(без названия)',
@@ -334,7 +335,7 @@ async function loadProducts(ids) {
 // ================================================================
 async function fetchAll(method, params, progStart, progEnd) {
   const first = await apiGet(WEBHOOK, method, { ...params, start: 0 });
-  const results = [...(first.result || [])];
+  const results = [...extractArr(first)];
   const total   = parseInt(first.total) || 0;
   setProgress(progStart + (progEnd - progStart) * 0.15);
   if (total <= 50) { setProgress(progEnd); return results; }
@@ -350,13 +351,43 @@ async function fetchAll(method, params, progStart, progEnd) {
     });
     const res = await apiBatch(cmds);
     if (res) {
-      Object.values(res).forEach(items => {
-        if (Array.isArray(items)) results.push(...items);
+      Object.values(res).forEach(batchItem => {
+        results.push(...extractArrFromItem(batchItem));
       });
     }
     setProgress(progStart + (progEnd - progStart) * Math.min((i + 49) / starts.length, 1));
   }
   return results;
+}
+
+// ================================================================
+// RESULT EXTRACTORS (Bitrix24 26.x wraps results: {result:{stores:[]}})
+// ================================================================
+function extractArr(apiResp) {
+  if (!apiResp) return [];
+  const r = apiResp.result;
+  if (!r) return [];
+  if (Array.isArray(r)) return r;                       // old flat format
+  for (const v of Object.values(r)) {                   // new wrapped format
+    if (Array.isArray(v)) return v;
+  }
+  return [];
+}
+function extractArrFromItem(item) {
+  if (!item) return [];
+  if (Array.isArray(item)) return item;
+  for (const v of Object.values(item)) {
+    if (Array.isArray(v)) return v;
+  }
+  return [];
+}
+function extractItem(raw) {
+  if (!raw) return null;
+  if (raw.id !== undefined) return raw;                 // already unwrapped
+  for (const v of Object.values(raw)) {
+    if (v && typeof v === 'object' && !Array.isArray(v) && v.id !== undefined) return v;
+  }
+  return raw;
 }
 
 // ================================================================
