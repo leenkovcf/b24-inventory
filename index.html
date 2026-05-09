@@ -1076,6 +1076,7 @@ function renderAnalytics(){
   const visStores=getVisStores('');
   const prods=Object.values(products).filter(p=>p.iblockId==MAIN_IBLOCK_ID&&!p.hidden);
   const wrap=document.getElementById('analytics-wrap');
+  let totalStockValue=0, pricedProds=0;
 
   let totalUnits=0,okCnt=0,lowCnt=0,zeroCnt=0,totalPos=0;
   prods.forEach(p=>visStores.forEach(s=>{
@@ -1177,8 +1178,6 @@ function renderAnalytics(){
     }
 
     // Total stock value (using prices from CRM deal rows)
-    let totalStockValue=0;
-    let pricedProds=0;
     prods.forEach(p=>{
       const price=productPrices[p.id];
       if(!price) return;
