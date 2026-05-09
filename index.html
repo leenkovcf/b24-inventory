@@ -716,6 +716,9 @@ async function loadAll() {
     setStatus('Загружаем категории...');
     await loadSections();
 
+    setStatus('Загружаем цены...');
+    await loadProductPrices();
+
     initSelectedCats();
     setStatus('Загружаем настройки...');
     await loadSharedConfig();
@@ -794,12 +797,7 @@ async function loadSalesData() {
   if (salesLoading) return;
   const cached = sessionStorage.getItem('inv_sales_v7');
   if (cached) {
-    try {
-      salesData=JSON.parse(cached);
-      const cachedPrices=sessionStorage.getItem('inv_prices_v1');
-      if(cachedPrices) productPrices=JSON.parse(cachedPrices);
-      if(currentTab==='analytics')renderAnalytics();if(currentTab==='runout')renderRunout(); return;
-    } catch(e){}
+    try { salesData=JSON.parse(cached); if(currentTab==='analytics')renderAnalytics();if(currentTab==='runout')renderRunout(); return; } catch(e){}
   }
   salesLoading = true;
   salesStatus = 'Загружаем список сделок...';
@@ -844,8 +842,7 @@ async function loadSalesData() {
     if(deals.length > MAX_DEALS) deals.length = MAX_DEALS;
 
     salesData = {};
-    productPrices = {};
-    if (!deals.length) { sessionStorage.setItem('inv_sales_v7',JSON.stringify(salesData));sessionStorage.setItem('inv_prices_v1',JSON.stringify(productPrices)); salesLoading=false; if(currentTab==='analytics')renderAnalytics();if(currentTab==='runout')renderRunout(); return; }
+    if (!deals.length) { sessionStorage.setItem('inv_sales_v7',JSON.stringify(salesData)); salesLoading=false; if(currentTab==='analytics')renderAnalytics();if(currentTab==='runout')renderRunout(); return; }
 
     // '__ALL__' = company-wide bucket when UF_CRM_SHOP is not filled
     const GLOBAL_STORE='__ALL__';
@@ -904,14 +901,11 @@ async function loadSalesData() {
             if(!pid||!qty) return;
             if(!salesData[pid]) salesData[pid]={};
             salesData[pid][storeId]=(salesData[pid][storeId]||0)+qty;
-            const price=parseFloat(row.PRICE||row.price||0);
-            if(price>0) productPrices[pid]=price;
           });
         });
       });
     }
     sessionStorage.setItem('inv_sales_v7',JSON.stringify(salesData));
-    sessionStorage.setItem('inv_prices_v1',JSON.stringify(productPrices));
   } catch(e) {
     console.warn('CRM unavailable:',e.message);
     salesData=null;
@@ -1427,6 +1421,37 @@ function renderCategoryDropdown(){
   });
   document.getElementById('cat-dd-items').innerHTML=html;
   updateCatLabel();
+}
+
+// ================================================================
+// PRODUCT PRICES (catalog.price.list)
+// ================================================================
+async function loadProductPrices(){
+  const cached=sessionStorage.getItem('inv_prices_v1');
+  if(cached){try{productPrices=JSON.parse(cached);return;}catch(e){}}
+  productPrices={};
+  const ids=Object.keys(products).filter(id=>products[id].iblockId==MAIN_IBLOCK_ID);
+  if(!ids.length) return;
+  try{
+    for(let i=0;i<ids.length;i+=49){
+      const chunk=ids.slice(i,i+49);
+      const cmds={};
+      chunk.forEach(id=>{cmds['pr'+id]='catalog.price.list?filter[PRODUCT_ID]='+id+'&select[0]=PRODUCT_ID&select[1]=PRICE&select[2]=CATALOG_GROUP_ID&start=0';});
+      const res=await apiBatch(cmds);
+      if(res){
+        Object.values(res).forEach(raw=>{
+          extractArrItem(raw).forEach(p=>{
+            const pid=String(p.productId||p.PRODUCT_ID||'');
+            const price=parseFloat(p.price||p.PRICE||0);
+            const grp=String(p.catalogGroupId||p.CATALOG_GROUP_ID||'');
+            if(!pid||!price) return;
+            if(!productPrices[pid]||grp==='1') productPrices[pid]=price;
+          });
+        });
+      }
+    }
+    sessionStorage.setItem('inv_prices_v1',JSON.stringify(productPrices));
+  }catch(e){console.warn('loadProductPrices:',e.message);}
 }
 
 // ================================================================
@@ -1988,8 +2013,8 @@ async function runCrmDiagnostic() {
 function setSalesDays(days){
   SALES_DAYS=days;
   localStorage.setItem(SALES_DAYS_KEY,days);
-  sessionStorage.removeItem('inv_sales_v7');sessionStorage.removeItem('inv_prices_v1');
-  salesData=undefined;productPrices={};salesLoading=false;
+  sessionStorage.removeItem('inv_sales_v7');
+  salesData=undefined;salesLoading=false;
   updatePeriodBtns();
   loadSalesData();
 }
@@ -2020,8 +2045,8 @@ function toggleAbcAll(btn,total){
 function saveExclCat(){
   const val=document.getElementById('excl-cat-input').value.trim();
   localStorage.setItem(EXCL_CAT_KEY,val);
-  sessionStorage.removeItem('inv_sales_v7');sessionStorage.removeItem('inv_prices_v1');
-  salesData=undefined;productPrices={};salesLoading=false;
+  sessionStorage.removeItem('inv_sales_v7');
+  salesData=undefined;salesLoading=false;
   alert(val?`Исключены воронки: ${val}. Данные продаж будут перезагружены.`:'Фильтр сброшен.');
   if(currentTab==='analytics')loadSalesData();
 }
