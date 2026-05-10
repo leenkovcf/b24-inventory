@@ -651,7 +651,15 @@ async function loadSharedConfig() {
       MODULE_ID: OPT_MODULE, options: [OPT_KEY]
     });
     const raw = resp?.result?.[OPT_KEY];
-    if (!raw) return false;
+    if (!raw) {
+      // Битрикс24 ничего не хранит — сразу синхронизируем из localStorage
+      const lsH = getHiddenProdsSet();
+      if (lsH.size > 0) {
+        Object.values(products).forEach(p => { p.hidden = lsH.has(p.id); });
+        if (userRole === 'admin' || userRole === 'director') scheduleSave();
+      }
+      return false;
+    }
     const cfg = JSON.parse(raw);
     if (cfg.hiddenProds && cfg.hiddenProds.length > 0) {
       const h = new Set(cfg.hiddenProds);
