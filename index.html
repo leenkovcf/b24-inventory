@@ -1059,7 +1059,7 @@ function renderStock(){
   });
   document.getElementById('tbl-body').innerHTML=body;
   document.getElementById('table-wrap').classList.toggle('show-hidden',showHidden);
-  updateStats(visProducts.length,visStores.length,zeros);
+  updateStats(visProducts.filter(p=>!p.hidden).length,visStores.length,zeros);
 }
 
 // ================================================================
@@ -1368,7 +1368,8 @@ function openProfileModal(id){
   const role=p?p.role:'regional';
   document.querySelector(`input[name="pm-role"][value="${role}"]`).checked=true;
   const saved=new Set(p?p.cities:[]);
-  document.getElementById('pm-cities').innerHTML=stores.map(s=>{
+  const hc=getHiddenCitiesSet();
+  document.getElementById('pm-cities').innerHTML=stores.filter(s=>!hc.has(String(s.id))).map(s=>{
     const sid=String(s.id),chk=saved.has(sid)?'checked':'';
     return `<label class="pm-city-item"><input type="checkbox" value="${sid}" ${chk}><span>${esc(cityName(s.title))}</span></label>`;
   }).join('');
