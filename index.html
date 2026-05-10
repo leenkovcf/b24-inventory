@@ -1423,7 +1423,7 @@ function copyProfileUrl(id){
   if(!p) return;
   const cfg=JSON.stringify({role:p.role,cities:p.cities,name:p.name,wh:WEBHOOK,id:p.id});
   const code=btoa(unescape(encodeURIComponent(cfg)));
-  const url=location.origin+location.pathname+'?access='+code;
+  const url=location.origin+location.pathname+'?access='+encodeURIComponent(code);
   navigator.clipboard.writeText(url).then(()=>{
     alert('Ссылка скопирована!\n\nОтправьте её сотруднику. При открытии ссылки приложение запустится автоматически — вводить вебхук не нужно.');
   }).catch(()=>prompt('Скопируйте ссылку:',url));
