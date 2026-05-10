@@ -660,7 +660,11 @@ async function loadSharedConfig() {
     } else if (!cfg.hiddenProds || cfg.hiddenProds.length === 0) {
       // Битрикс24 вернул пустой список — доверяем localStorage (актуальному состоянию)
       const lsH = getHiddenProdsSet();
-      if (lsH.size > 0) Object.values(products).forEach(p => { p.hidden = lsH.has(p.id); });
+      if (lsH.size > 0) {
+        Object.values(products).forEach(p => { p.hidden = lsH.has(p.id); });
+        // Перезаписываем Битрикс24 актуальными данными из localStorage
+        if (userRole === 'admin' || userRole === 'director') scheduleSave();
+      }
     }
     if (cfg.hiddenCities) localStorage.setItem(HIDDEN_CITIES_KEY, JSON.stringify(cfg.hiddenCities));
     if (cfg.profiles) {
