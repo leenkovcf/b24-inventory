@@ -584,7 +584,7 @@ let runoutDealsTotal  = 0;
 // ================================================================
 (function init() {
   const params = new URLSearchParams(location.search);
-  const accessCode = params.get('access');
+  const accessCode = params.get('access')?.replace(/ /g, '+');
   if (accessCode) {
     try {
       const cfg = JSON.parse(atob(decodeURIComponent(accessCode)));
