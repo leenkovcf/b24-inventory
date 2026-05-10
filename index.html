@@ -517,6 +517,7 @@ const ROLE_KEY        = 'inv_role_v1';
 const MY_CITIES_KEY   = 'inv_my_cities_v1';
 const PROFILES_KEY    = 'inv_profiles_v1';
 const PROFILE_NAME_KEY = 'inv_profile_name_v1';
+const PROFILE_ID_KEY  = 'inv_profile_id_v1';
 const OPT_MODULE      = 'inv_warehouse_v2';
 const OPT_KEY         = 'shared_cfg';
 const REFRESH_SEC     = 600;
@@ -591,6 +592,7 @@ let runoutDealsTotal  = 0;
       if (cfg.role)   { userRole = cfg.role; localStorage.setItem(ROLE_KEY, cfg.role); }
       if (cfg.cities) { myCities = new Set(cfg.cities); localStorage.setItem(MY_CITIES_KEY, JSON.stringify(cfg.cities)); }
       if (cfg.name)   localStorage.setItem(PROFILE_NAME_KEY, cfg.name);
+      if (cfg.id)     localStorage.setItem(PROFILE_ID_KEY, cfg.id);
       history.replaceState({}, '', location.pathname);
     } catch(e) { console.warn('access param parse error', e); }
   } else {
@@ -657,7 +659,20 @@ async function loadSharedConfig() {
       localStorage.setItem(HIDDEN_PRODS_KEY, JSON.stringify(cfg.hiddenProds));
     }
     if (cfg.hiddenCities) localStorage.setItem(HIDDEN_CITIES_KEY, JSON.stringify(cfg.hiddenCities));
-    if (cfg.profiles)     localStorage.setItem(PROFILES_KEY, JSON.stringify(cfg.profiles));
+    if (cfg.profiles) {
+      localStorage.setItem(PROFILES_KEY, JSON.stringify(cfg.profiles));
+      const profileId = localStorage.getItem(PROFILE_ID_KEY);
+      if (profileId) {
+        const myProfile = cfg.profiles.find(p => p.id === profileId);
+        if (myProfile) {
+          myCities = new Set(myProfile.cities);
+          userRole = myProfile.role;
+          localStorage.setItem(MY_CITIES_KEY, JSON.stringify(myProfile.cities));
+          localStorage.setItem(ROLE_KEY, myProfile.role);
+          localStorage.setItem(PROFILE_NAME_KEY, myProfile.name);
+        }
+      }
+    }
     return true;
   } catch(e) {
     console.warn('loadSharedConfig:', e.message);
@@ -1406,7 +1421,7 @@ function deleteProfile(id){
 function copyProfileUrl(id){
   const p=getProfiles().find(pr=>pr.id===id);
   if(!p) return;
-  const cfg=JSON.stringify({role:p.role,cities:p.cities,name:p.name,wh:WEBHOOK});
+  const cfg=JSON.stringify({role:p.role,cities:p.cities,name:p.name,wh:WEBHOOK,id:p.id});
   const code=btoa(unescape(encodeURIComponent(cfg)));
   const url=location.origin+location.pathname+'?access='+code;
   navigator.clipboard.writeText(url).then(()=>{
