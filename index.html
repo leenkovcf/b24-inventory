@@ -653,10 +653,14 @@ async function loadSharedConfig() {
     const raw = resp?.result?.[OPT_KEY];
     if (!raw) return false;
     const cfg = JSON.parse(raw);
-    if (cfg.hiddenProds) {
+    if (cfg.hiddenProds && cfg.hiddenProds.length > 0) {
       const h = new Set(cfg.hiddenProds);
       Object.values(products).forEach(p => { p.hidden = h.has(p.id); });
       localStorage.setItem(HIDDEN_PRODS_KEY, JSON.stringify(cfg.hiddenProds));
+    } else if (!cfg.hiddenProds || cfg.hiddenProds.length === 0) {
+      // Битрикс24 вернул пустой список — доверяем localStorage (актуальному состоянию)
+      const lsH = getHiddenProdsSet();
+      if (lsH.size > 0) Object.values(products).forEach(p => { p.hidden = lsH.has(p.id); });
     }
     if (cfg.hiddenCities) localStorage.setItem(HIDDEN_CITIES_KEY, JSON.stringify(cfg.hiddenCities));
     if (cfg.profiles) {
@@ -836,9 +840,18 @@ async function loadSalesData() {
     exclCats.forEach((id,i)=>{catFilterObj['filter[!CATEGORY_ID]['+i+']']=id;});
     const catParamStr=exclCats.map((id,i)=>`&filter%5B!CATEGORY_ID%5D%5B${i}%5D=${encodeURIComponent(id)}`).join('');
 
+    // Для регионала/оператора с ограниченным набором городов — фильтруем сделки по складам
+    const cityFilterObj={};
+    let cityParamStr='';
+    const isLimitedRole=(userRole==='regional'||userRole==='operator')&&myCities.size>0&&myCities.size<=30;
+    if(isLimitedRole){
+      [...myCities].forEach((id,i)=>{cityFilterObj['filter[UF_CRM_SHOP]['+i+']']=id;});
+      cityParamStr=[...myCities].map((id,i)=>`&filter%5BUF_CRM_SHOP%5D%5B${i}%5D=${encodeURIComponent(id)}`).join('');
+    }
+
     const firstResp = await apiGet(WEBHOOK,'crm.deal.list',{
       'filter[STAGE_SEMANTIC_ID]':'S','filter[>=CLOSEDATE]':dateStr,
-      ...catFilterObj,
+      ...catFilterObj,...cityFilterObj,
       'select[0]':'ID','select[1]':'UF_CRM_SHOP',
       'order[CLOSEDATE]':'DESC', start:0
     });
@@ -855,7 +868,7 @@ async function loadSalesData() {
       for(let s=50;s<total;s+=50) starts.push(s);
       for(let i=0;i<starts.length;i+=49){
         const chunk=starts.slice(i,i+49); const cmds={};
-        chunk.forEach((s,idx)=>{cmds['r'+idx]='crm.deal.list?filter[STAGE_SEMANTIC_ID]=S&filter[%3E%3DCLOSEDATE]='+dateStr+'&select[0]=ID&select[1]=UF_CRM_SHOP&order[CLOSEDATE]=DESC'+catParamStr+'&start='+s;});
+        chunk.forEach((s,idx)=>{cmds['r'+idx]='crm.deal.list?filter[STAGE_SEMANTIC_ID]=S&filter[%3E%3DCLOSEDATE]='+dateStr+'&select[0]=ID&select[1]=UF_CRM_SHOP&order[CLOSEDATE]=DESC'+catParamStr+cityParamStr+'&start='+s;});
         const res=await apiBatch(cmds);
         if(res) Object.values(res).forEach(item=>deals.push(...extractArrItem(item)));
         salesDealsLoaded = Math.min(deals.length, total);
@@ -1275,7 +1288,7 @@ function renderAnalytics(){
   const TIP_KPI_COV=`Процент позиций (товар × склад),\nгде остаток превышает ${LOW_STOCK} шт.\nВысокое значение = хорошее насыщение.`;
 
   // Data quality badge: show deal match stats when sales data is ready
-  const matchBadge = salesDealsTotal>0
+  const matchBadge = !salesLoading && salesDealsTotal>0
     ? `<div style="font-size:11px;color:var(--muted);padding:4px 0 0">
         <i class="bi bi-database-check"></i> Загружено <b>${fmtNum(salesDealsTotal)}</b> сделок за ${SALES_DAYS} дн. &nbsp;·&nbsp; совпало со складами: <b>${fmtNum(salesDealsMatched)}</b> (${salesMatchRate}%)
         ${salesMatchRate<60?'<span style="color:#dc2626"> — проверьте поле UF_CRM_SHOP в сделках</span>':''}</div>`
