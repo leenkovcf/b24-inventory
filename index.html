@@ -602,6 +602,8 @@ let runoutDealsTotal  = 0;
       if (cfg.cities) { myCities = new Set(cfg.cities); localStorage.setItem(MY_CITIES_KEY, JSON.stringify(cfg.cities)); }
       if (cfg.name)   localStorage.setItem(PROFILE_NAME_KEY, cfg.name);
       if (cfg.id)     localStorage.setItem(PROFILE_ID_KEY, cfg.id);
+      if (cfg.hp)     localStorage.setItem(HIDDEN_PRODS_KEY, JSON.stringify(cfg.hp));
+      if (cfg.hc)     localStorage.setItem(HIDDEN_CITIES_KEY, JSON.stringify(cfg.hc));
       history.replaceState({}, '', location.pathname);
     } catch(e) { console.warn('access param parse error', e); }
   } else {
@@ -1455,7 +1457,7 @@ function deleteProfile(id){
 function copyProfileUrl(id){
   const p=getProfiles().find(pr=>pr.id===id);
   if(!p) return;
-  const cfg=JSON.stringify({role:p.role,cities:p.cities,name:p.name,wh:WEBHOOK,id:p.id});
+  const cfg=JSON.stringify({role:p.role,cities:p.cities,name:p.name,wh:WEBHOOK,id:p.id,hp:[...getHiddenProdsSet()],hc:[...getHiddenCitiesSet()]});
   const code=btoa(unescape(encodeURIComponent(cfg)));
   const url=location.origin+location.pathname+'?access='+encodeURIComponent(code);
   navigator.clipboard.writeText(url).then(()=>{
