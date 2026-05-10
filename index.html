@@ -486,6 +486,15 @@ tbody tr:hover .hide-btn{display:inline}
           </div>
         </div>
 
+        <!-- Sync Diagnostic -->
+        <div class="admin-section">
+          <div class="admin-section-header">
+            <span class="admin-section-title"><i class="bi bi-cloud-check"></i> Синхронизация настроек</span>
+            <button class="btn-sm" onclick="runSyncDiagnostic()"><i class="bi bi-arrow-repeat"></i> Проверить и синхронизировать</button>
+          </div>
+          <div id="sync-diag-output" style="padding:10px 15px;font-size:12px;color:var(--muted)">Нажмите кнопку — проверит, что Битрикс24 хранит актуальные настройки (скрытые товары/города/профили)</div>
+        </div>
+
         <!-- CRM Diagnostic -->
         <div class="admin-section">
           <div class="admin-section-header">
@@ -708,7 +717,7 @@ function scheduleSave() {
         profiles:     getProfiles(),
         savedAt:      Date.now()
       };
-      await apiGet(WEBHOOK, 'user.option.set', {
+      await apiPost(WEBHOOK, 'user.option.set', {
         MODULE_ID: OPT_MODULE,
         options: { [OPT_KEY]: JSON.stringify(cfg) }
       });
@@ -1895,6 +1904,12 @@ async function apiGet(base,method,params){
   if(!r.ok) throw new Error(method+' HTTP '+r.status);
   return r.json();
 }
+async function apiPost(base,method,params){
+  const body=new URLSearchParams(buildQS(params));
+  const r=await fetch(base+method,{method:'POST',body});
+  if(!r.ok) throw new Error(method+' HTTP '+r.status);
+  return r.json();
+}
 async function apiBatch(cmds){
   const body=new URLSearchParams();
   Object.keys(cmds).forEach(k=>body.append('cmd['+k+']',cmds[k]));
@@ -1934,6 +1949,37 @@ function fmtNum(n){return Number(n).toLocaleString('ru-RU');}
 function show(id){['setup','loading','app'].forEach(s=>{document.getElementById(s).style.display=s===id?'flex':'none';});}
 
 // ================================================================
+// SYNC DIAGNOSTIC
+// ================================================================
+async function runSyncDiagnostic() {
+  const out = document.getElementById('sync-diag-output');
+  out.innerHTML = '<div style="display:flex;align-items:center;gap:8px"><div class="spinner"></div> Синхронизируем...</div>';
+  try {
+    const cfg = {
+      hiddenProds:  [...getHiddenProdsSet()],
+      hiddenCities: [...getHiddenCitiesSet()],
+      profiles:     getProfiles(),
+      savedAt:      Date.now()
+    };
+    await apiPost(WEBHOOK, 'user.option.set', {
+      MODULE_ID: OPT_MODULE,
+      options: { [OPT_KEY]: JSON.stringify(cfg) }
+    });
+    // Read back to verify
+    const resp = await apiGet(WEBHOOK, 'user.option.get', { MODULE_ID: OPT_MODULE, options: [OPT_KEY] });
+    const raw = resp?.result?.[OPT_KEY];
+    if (!raw) {
+      out.innerHTML = '<span style="color:#dc2626">❌ Битрикс24 не сохранил данные. Убедитесь что вебхук имеет право <strong>Пользователь (user)</strong> в настройках Битрикс24 → Разработчикам → Входящие вебхуки.</span>';
+      return;
+    }
+    const rb = JSON.parse(raw);
+    const ago = rb.savedAt ? Math.round((Date.now()-rb.savedAt)/1000)+'с назад' : '—';
+    out.innerHTML = `<span style="color:#16a34a">✓ Синхронизировано: <strong>${rb.hiddenProds?.length||0}</strong> скрытых товаров, <strong>${rb.hiddenCities?.length||0}</strong> скрытых городов, <strong>${rb.profiles?.length||0}</strong> профилей. Обновлено ${ago}.</span>`;
+  } catch(e) {
+    out.innerHTML = `<span style="color:#dc2626">❌ Ошибка: ${esc(e.message)}</span>`;
+  }
+}
+
 // CRM DIAGNOSTIC
 // ================================================================
 async function runCrmDiagnostic() {
