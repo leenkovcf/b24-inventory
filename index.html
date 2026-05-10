@@ -813,14 +813,16 @@ function initSelectedCats() {
 // CRM SALES DATA (background)
 // ================================================================
 let salesStatus='';
-let salesDealsTotal=0, salesDealsMatched=0, salesMatchRate=0;
+let salesDealsLoaded=0, salesDealsTotal=0, salesDealsMatched=0, salesMatchRate=0;
 async function loadSalesData() {
   if (salesLoading) return;
-  const cached = sessionStorage.getItem('inv_sales_v7');
+  const cached = sessionStorage.getItem('inv_sales_v8');
   if (cached) {
     try { salesData=JSON.parse(cached); if(currentTab==='analytics')renderAnalytics();if(currentTab==='runout')renderRunout(); return; } catch(e){}
   }
   salesLoading = true;
+  salesDealsLoaded = 0;
+  salesDealsTotal = 0;
   salesStatus = 'Загружаем список сделок...';
   if (currentTab==='analytics') renderAnalytics();if(currentTab==='runout')renderRunout();
   try {
@@ -828,7 +830,6 @@ async function loadSalesData() {
     since.setDate(since.getDate()-SALES_DAYS);
     const dateStr = since.toISOString().slice(0,10);
 
-    const MAX_DEALS = 5000; // cap to avoid eternal loading at 28k+ deals
     // Build category exclusion filter (e.g. exclude Маркетплейсы pipeline)
     const exclCats=(localStorage.getItem(EXCL_CAT_KEY)||'').split(',').map(s=>s.trim()).filter(Boolean);
     const catFilterObj={};
@@ -845,25 +846,26 @@ async function loadSalesData() {
 
     const deals = [...extractArr(firstResp)];
     const total = parseInt(firstResp.total)||0;
-    const toLoad = Math.min(total, MAX_DEALS);
-    if (total > MAX_DEALS) {
-      salesStatus = `Загружаем последние ${MAX_DEALS} из ${total} сделок...`;
-      if(currentTab==='analytics'){const el=document.querySelector('.sales-spinner-text');if(el)el.textContent=salesStatus;}
-    }
-    if (toLoad > 50) {
+    salesDealsTotal = total;
+    salesDealsLoaded = deals.length;
+    salesStatus = `Загружаем сделки: ${fmtNum(salesDealsLoaded)} из ${fmtNum(total)}...`;
+    if (currentTab==='analytics') renderAnalytics();
+    if (total > 50) {
       const starts=[];
-      for(let s=50;s<toLoad;s+=50) starts.push(s);
+      for(let s=50;s<total;s+=50) starts.push(s);
       for(let i=0;i<starts.length;i+=49){
         const chunk=starts.slice(i,i+49); const cmds={};
         chunk.forEach((s,idx)=>{cmds['r'+idx]='crm.deal.list?filter[STAGE_SEMANTIC_ID]=S&filter[%3E%3DCLOSEDATE]='+dateStr+'&select[0]=ID&select[1]=UF_CRM_SHOP&order[CLOSEDATE]=DESC'+catParamStr+'&start='+s;});
         const res=await apiBatch(cmds);
         if(res) Object.values(res).forEach(item=>deals.push(...extractArrItem(item)));
+        salesDealsLoaded = Math.min(deals.length, total);
+        salesStatus = `Загружаем сделки: ${fmtNum(salesDealsLoaded)} из ${fmtNum(total)}...`;
+        if (currentTab==='analytics') renderAnalytics();
       }
     }
-    if(deals.length > MAX_DEALS) deals.length = MAX_DEALS;
 
     salesData = {};
-    if (!deals.length) { sessionStorage.setItem('inv_sales_v7',JSON.stringify(salesData)); salesLoading=false; if(currentTab==='analytics')renderAnalytics();if(currentTab==='runout')renderRunout(); return; }
+    if (!deals.length) { sessionStorage.setItem('inv_sales_v8',JSON.stringify(salesData)); salesLoading=false; if(currentTab==='analytics')renderAnalytics();if(currentTab==='runout')renderRunout(); return; }
 
     // '__ALL__' = company-wide bucket when UF_CRM_SHOP is not filled
     const GLOBAL_STORE='__ALL__';
@@ -902,11 +904,8 @@ async function loadSalesData() {
     // Process batches in parallel groups of 5
     const CONCURRENCY=5;
     for(let i=0;i<batches.length;i+=CONCURRENCY){
-      salesStatus=`Загружаем строки сделок: ${Math.min(i*49,deals.length)} / ${deals.length}...`;
-      if(currentTab==='analytics') {
-        const el=document.querySelector('.sales-spinner-text');
-        if(el) el.textContent=salesStatus;
-      }
+      salesStatus=`Загружаем строки сделок: ${fmtNum(Math.min((i+CONCURRENCY)*49,deals.length))} / ${fmtNum(deals.length)}...`;
+      if(currentTab==='analytics') renderAnalytics();
       const group=batches.slice(i,i+CONCURRENCY);
       const results=await Promise.all(group.map(cmds=>apiBatch(cmds)));
       results.forEach(res=>{
@@ -926,7 +925,7 @@ async function loadSalesData() {
         });
       });
     }
-    sessionStorage.setItem('inv_sales_v7',JSON.stringify(salesData));
+    sessionStorage.setItem('inv_sales_v8',JSON.stringify(salesData));
   } catch(e) {
     console.warn('CRM unavailable:',e.message);
     salesData=null;
@@ -1143,7 +1142,8 @@ function renderAnalytics(){
   const TIP_ABC=`ABC-анализ по продажам за ${SALES_DAYS} дней:\n\nA (зелёный) — топ-20% товаров по объёму продаж.\nЭто ваши ключевые позиции — следите за остатками!\n\nB (жёлтый) — следующие 60% товаров.\nСтабильный средний спрос.\n\nC (красный) — нижние 20% товаров.\nМинимальные продажи — кандидаты на вывод\nили стимуляцию спроса.`;
 
   if(salesLoading){
-    salesHTML=`<div class="a-table-wrap"><div class="a-table-title"><i class="bi bi-bar-chart-line"></i> Аналитика продаж</div><div class="sales-spinner"><div class="spinner"></div> <span class="sales-spinner-text">${salesStatus||'Загружаем данные о продажах из CRM...'}</span></div></div>`;
+    const _spct=salesDealsTotal>0?Math.round(salesDealsLoaded/salesDealsTotal*100):0;
+    salesHTML=`<div class="a-table-wrap"><div class="a-table-title"><i class="bi bi-bar-chart-line"></i> Аналитика продаж</div><div style="padding:22px"><div class="sales-spinner" style="margin-bottom:14px"><div class="spinner"></div> <span>${esc(salesStatus||'Загружаем данные о продажах из CRM...')}</span></div><div class="progress-wrap" style="width:100%;margin-bottom:8px"><div class="progress-bar" style="width:${_spct}%"></div></div><div style="font-size:11px;color:var(--muted)">${salesDealsTotal>0?`Сделок: ${fmtNum(salesDealsLoaded)} из ${fmtNum(salesDealsTotal)} (${_spct}%)`:'Определяем объём данных...'}</div></div></div>`;
   } else if(salesData===null){
     salesHTML=`<div class="alert-box info"><i class="bi bi-info-circle-fill" style="font-size:20px;flex-shrink:0"></i><div><div class="alert-title">Нет прав CRM — ABC-анализ и "скоро закончатся" недоступны</div><div style="font-size:12px;margin-top:4px">Добавьте право <strong>CRM</strong> к вебхуку: Битрикс24 → Настройки → Разработчикам → Входящие вебхуки → ваш вебхук → добавить «CRM».<br>Также убедитесь, что в закрытых сделках заполнено поле <strong>UF_CRM_SHOP</strong> (склад/магазин).</div></div></div>`;
   } else if(salesData&&Object.keys(salesData).length===0){
@@ -1277,7 +1277,7 @@ function renderAnalytics(){
   // Data quality badge: show deal match stats when sales data is ready
   const matchBadge = salesDealsTotal>0
     ? `<div style="font-size:11px;color:var(--muted);padding:4px 0 0">
-        <i class="bi bi-database-check"></i> Сделки CRM: <b>${salesDealsMatched}</b> из <b>${salesDealsTotal}</b> совпало со складами (${salesMatchRate}%)
+        <i class="bi bi-database-check"></i> Загружено <b>${fmtNum(salesDealsTotal)}</b> сделок за ${SALES_DAYS} дн. &nbsp;·&nbsp; совпало со складами: <b>${fmtNum(salesDealsMatched)}</b> (${salesMatchRate}%)
         ${salesMatchRate<60?'<span style="color:#dc2626"> — проверьте поле UF_CRM_SHOP в сделках</span>':''}</div>`
     : '';
 
@@ -1856,7 +1856,7 @@ function showAllCities(){localStorage.removeItem(HIDDEN_CITIES_KEY);scheduleSave
 
 function reloadData(){
   if(refreshTimer) clearInterval(refreshTimer);
-  sessionStorage.removeItem('inv_sales_v7');sessionStorage.removeItem('inv_prices_v1');
+  sessionStorage.removeItem('inv_sales_v8');sessionStorage.removeItem('inv_prices_v1');
   salesData=undefined;productPrices={};salesLoading=false;stores=[];products={};sections={};stock={};
   show('loading');document.getElementById('progress').style.width='0';loadAll();
 }
@@ -2035,7 +2035,7 @@ async function runCrmDiagnostic() {
 function setSalesDays(days){
   SALES_DAYS=days;
   localStorage.setItem(SALES_DAYS_KEY,days);
-  sessionStorage.removeItem('inv_sales_v7');
+  sessionStorage.removeItem('inv_sales_v8');
   salesData=undefined;salesLoading=false;
   updatePeriodBtns();
   loadSalesData();
@@ -2067,7 +2067,7 @@ function toggleAbcAll(btn,total){
 function saveExclCat(){
   const val=document.getElementById('excl-cat-input').value.trim();
   localStorage.setItem(EXCL_CAT_KEY,val);
-  sessionStorage.removeItem('inv_sales_v7');
+  sessionStorage.removeItem('inv_sales_v8');
   salesData=undefined;salesLoading=false;
   alert(val?`Исключены воронки: ${val}. Данные продаж будут перезагружены.`:'Фильтр сброшен.');
   if(currentTab==='analytics')loadSalesData();
