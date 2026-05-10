@@ -1185,7 +1185,7 @@ function renderAnalytics(){
       });
       const cityVel=Object.values(cityGroups).map(c=>({name:c.name,velocity:c.totalSold/SALES_DAYS,totalSold:c.totalSold})).sort((a,b)=>b.velocity-a.velocity);
       const strongCities=cityVel.filter(c=>c.velocity>0);
-      const weakCities=[...cityVel].filter(c=>c.velocity>0).sort((a,b)=>a.velocity-b.velocity);
+      const weakCities=[...cityVel].sort((a,b)=>a.velocity-b.velocity);
       const TIP_VEL=`Скорость продаж — среднее кол-во товаров,\nпродаваемых в день за последние ${SALES_DAYS} дней.\n\nГруппирует несколько складов одного города вместе.`;
       const mkCityRows=(arr,cls,start=0)=>arr.map((c,i)=>`<tr><td class="rank">${start+i+1}</td><td class="name">${esc(c.name)}</td><td class="val ${cls}">${fmtVel(c.velocity)} шт./д</td></tr>`).join('');
       const mkCitySection=(title,icon,color,all,idSuf)=>{
