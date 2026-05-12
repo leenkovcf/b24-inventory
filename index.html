@@ -1631,13 +1631,36 @@ function deleteProfile(id){
 }
 
 async function shortenUrl(url){
-  try{
-    const r=await fetch('https://is.gd/create.php?format=simple&url='+encodeURIComponent(url));
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const txt=(await r.text()).trim();
-    if(!/^https?:\/\//i.test(txt)) throw new Error(txt||'invalid response');
-    return txt;
-  }catch(e){console.warn('is.gd shorten failed:',e.message);return null;}
+  // Каскад: is.gd → TinyURL → cleanuri. Все три поддерживают CORS, но любой может упасть.
+  const providers = [
+    {name:'is.gd', fn: async ()=>{
+      const r=await fetch('https://is.gd/create.php?format=simple&url='+encodeURIComponent(url));
+      const txt=(await r.text()).trim();
+      if(!r.ok || !/^https?:\/\//i.test(txt)) throw new Error(txt||('HTTP '+r.status));
+      return txt;
+    }},
+    {name:'tinyurl', fn: async ()=>{
+      const r=await fetch('https://tinyurl.com/api-create.php?url='+encodeURIComponent(url));
+      const txt=(await r.text()).trim();
+      if(!r.ok || !/^https?:\/\//i.test(txt)) throw new Error(txt||('HTTP '+r.status));
+      return txt;
+    }},
+    {name:'cleanuri', fn: async ()=>{
+      const r=await fetch('https://cleanuri.com/api/v1/shorten',{
+        method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body:'url='+encodeURIComponent(url)
+      });
+      const j=await r.json();
+      if(!j.result_url || !/^https?:\/\//i.test(j.result_url)) throw new Error(j.error||'no result_url');
+      return j.result_url;
+    }}
+  ];
+  for(const p of providers){
+    try{ const short=await p.fn(); console.log('shortened via',p.name); return short; }
+    catch(e){ console.warn(p.name+' failed:', e.message); }
+  }
+  return null;
 }
 
 async function copyProfileUrl(id){
