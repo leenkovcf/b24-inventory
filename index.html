@@ -371,7 +371,6 @@ tbody tr:hover .hide-btn{display:inline}
           <label class="pm-chk"><input type="checkbox" id="pm-inc-hp" checked> Скрытые товары (текущие)</label>
           <label class="pm-chk"><input type="checkbox" id="pm-inc-hc" checked> Скрытые города (текущие)</label>
           <label class="pm-chk" id="pm-inc-profiles-wrap"><input type="checkbox" id="pm-inc-profiles"> Список всех профилей</label>
-          <label class="pm-chk"><input type="checkbox" id="pm-inc-shorten" checked> Сократить ссылку (is.gd)</label>
         </div>
       </div>
     </div>
@@ -1547,7 +1546,6 @@ function openProfileModal(id){
   document.getElementById('pm-inc-hp').checked       = p?.payload?.hp ?? true;
   document.getElementById('pm-inc-hc').checked       = p?.payload?.hc ?? true;
   document.getElementById('pm-inc-profiles').checked = p?.payload?.profiles ?? false;
-  document.getElementById('pm-inc-shorten').checked  = p?.payload?.shorten ?? true;
 
   // Видимость опций по роли
   pmSyncRoleUI();
@@ -1613,8 +1611,7 @@ function saveProfile(){
   const payload={
     hp:       document.getElementById('pm-inc-hp').checked,
     hc:       document.getElementById('pm-inc-hc').checked,
-    profiles: document.getElementById('pm-inc-profiles').checked,
-    shorten:  document.getElementById('pm-inc-shorten').checked
+    profiles: document.getElementById('pm-inc-profiles').checked
   };
   const profiles=getProfiles();
   const data={name,role,cities,tabs,widgets,settings,payload};
@@ -1639,45 +1636,10 @@ function deleteProfile(id){
   renderViewAsDropdown();
 }
 
-async function shortenUrl(url){
-  // is.gd и v.gd — чистый редирект без preview-страниц. cleanuri — резерв.
-  // TinyURL намеренно исключён: с 2024 он перенаправляет на preview-страницу
-  // с cookie-баннером, что ломает UX для получателя ссылки.
-  const providers = [
-    {name:'is.gd', fn: async ()=>{
-      const r=await fetch('https://is.gd/create.php?format=simple&url='+encodeURIComponent(url));
-      const txt=(await r.text()).trim();
-      if(!r.ok || !/^https?:\/\//i.test(txt)) throw new Error(txt||('HTTP '+r.status));
-      return txt;
-    }},
-    {name:'v.gd', fn: async ()=>{
-      const r=await fetch('https://v.gd/create.php?format=simple&url='+encodeURIComponent(url));
-      const txt=(await r.text()).trim();
-      if(!r.ok || !/^https?:\/\//i.test(txt)) throw new Error(txt||('HTTP '+r.status));
-      return txt;
-    }},
-    {name:'cleanuri', fn: async ()=>{
-      const r=await fetch('https://cleanuri.com/api/v1/shorten',{
-        method:'POST',
-        headers:{'Content-Type':'application/x-www-form-urlencoded'},
-        body:'url='+encodeURIComponent(url)
-      });
-      const j=await r.json();
-      if(!j.result_url || !/^https?:\/\//i.test(j.result_url)) throw new Error(j.error||'no result_url');
-      return j.result_url;
-    }}
-  ];
-  for(const p of providers){
-    try{ const short=await p.fn(); console.log('shortened via',p.name); return short; }
-    catch(e){ console.warn(p.name+' failed:', e.message); }
-  }
-  return null;
-}
-
 async function copyProfileUrl(id){
   const p=getProfiles().find(pr=>pr.id===id);
   if(!p) return;
-  const payload=p.payload||{hp:true,hc:true,profiles:false,shorten:true};
+  const payload=p.payload||{hp:true,hc:true,profiles:false};
   const cfg={role:p.role,cities:p.cities,name:p.name,wh:WEBHOOK,id:p.id};
   if(payload.hp) cfg.hp=[...getHiddenProdsSet()];
   if(payload.hc) cfg.hc=[...getHiddenCitiesSet()];
@@ -1687,28 +1649,17 @@ async function copyProfileUrl(id){
   if(p.settings && (p.settings.salesDays!==90 || p.settings.exclCat))        cfg.settings = p.settings;
 
   const json=JSON.stringify(cfg);
-  // LZ-сжатие даёт ~50–60% выигрыш на нашем JSON и помещается в лимит is.gd (5000 симв).
-  // Параметр z= — уже URI-safe (compressToEncodedURIComponent), encodeURIComponent не нужен.
-  let url;
-  if (typeof LZString!=='undefined') {
-    url = location.origin+location.pathname+'?z='+LZString.compressToEncodedURIComponent(json);
-  } else {
-    const code=btoa(unescape(encodeURIComponent(json)));
-    url = location.origin+location.pathname+'?access='+encodeURIComponent(code);
-  }
-
-  let finalUrl=url, shortened=false;
-  if(payload.shorten!==false){
-    const short=await shortenUrl(url);
-    if(short){finalUrl=short;shortened=true;}
-  }
+  // LZ-сжатие сокращает JSON в ~2 раза и URI-safe из коробки (~600 симв против ~2000 в base64).
+  // Сторонние сокращатели (is.gd/v.gd/tinyurl/cleanuri) не работают из браузера: режут CORS.
+  const url = (typeof LZString!=='undefined')
+    ? location.origin+location.pathname+'?z='+LZString.compressToEncodedURIComponent(json)
+    : location.origin+location.pathname+'?access='+encodeURIComponent(btoa(unescape(encodeURIComponent(json))));
 
   try{
-    await navigator.clipboard.writeText(finalUrl);
-    const note = shortened?'(сокращено через is.gd)':(payload.shorten===false?'(без сокращения)':'(не удалось сократить — отправляется полная)');
-    alert('Ссылка скопирована! '+note+'\n\n'+finalUrl);
+    await navigator.clipboard.writeText(url);
+    alert('Ссылка скопирована ('+url.length+' символов).\n\nОтправьте её сотруднику — приложение запустится автоматически.');
   }catch{
-    prompt('Скопируйте ссылку:',finalUrl);
+    prompt('Скопируйте ссылку:',url);
   }
 }
 
