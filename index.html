@@ -6,6 +6,7 @@
 <title>Складская аналитика</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
 <style>
 :root {
   --navy:#1e3a5f; --blue:#2563eb; --blue-light:#eff6ff;
@@ -639,9 +640,17 @@ let viewAsProfileId = '';    // '' = own view (admin/director only)
 (function init() {
   const params = new URLSearchParams(location.search);
   const accessCode = params.get('access')?.replace(/ /g, '+');
-  if (accessCode) {
+  const accessZ    = params.get('z'); // сжатый формат (LZ-string)
+  if (accessCode || accessZ) {
     try {
-      const cfg = JSON.parse(atob(decodeURIComponent(accessCode)));
+      let cfg;
+      if (accessZ && typeof LZString!=='undefined') {
+        const json = LZString.decompressFromEncodedURIComponent(accessZ);
+        if (!json) throw new Error('Не удалось распаковать ссылку');
+        cfg = JSON.parse(json);
+      } else {
+        cfg = JSON.parse(atob(decodeURIComponent(accessCode)));
+      }
       if (cfg.wh)     { WEBHOOK = cfg.wh; localStorage.setItem(WEBHOOK_KEY, cfg.wh); }
       if (cfg.role)   { userRole = cfg.role; localStorage.setItem(ROLE_KEY, cfg.role); }
       if (cfg.cities) { myCities = new Set(cfg.cities); localStorage.setItem(MY_CITIES_KEY, JSON.stringify(cfg.cities)); }
@@ -1631,7 +1640,9 @@ function deleteProfile(id){
 }
 
 async function shortenUrl(url){
-  // Каскад: is.gd → TinyURL → cleanuri. Все три поддерживают CORS, но любой может упасть.
+  // is.gd и v.gd — чистый редирект без preview-страниц. cleanuri — резерв.
+  // TinyURL намеренно исключён: с 2024 он перенаправляет на preview-страницу
+  // с cookie-баннером, что ломает UX для получателя ссылки.
   const providers = [
     {name:'is.gd', fn: async ()=>{
       const r=await fetch('https://is.gd/create.php?format=simple&url='+encodeURIComponent(url));
@@ -1639,8 +1650,8 @@ async function shortenUrl(url){
       if(!r.ok || !/^https?:\/\//i.test(txt)) throw new Error(txt||('HTTP '+r.status));
       return txt;
     }},
-    {name:'tinyurl', fn: async ()=>{
-      const r=await fetch('https://tinyurl.com/api-create.php?url='+encodeURIComponent(url));
+    {name:'v.gd', fn: async ()=>{
+      const r=await fetch('https://v.gd/create.php?format=simple&url='+encodeURIComponent(url));
       const txt=(await r.text()).trim();
       if(!r.ok || !/^https?:\/\//i.test(txt)) throw new Error(txt||('HTTP '+r.status));
       return txt;
@@ -1675,8 +1686,16 @@ async function copyProfileUrl(id){
   if(p.widgets && p.widgets.length && p.widgets.length < ALL_WIDGETS.length) cfg.widgets = p.widgets;
   if(p.settings && (p.settings.salesDays!==90 || p.settings.exclCat))        cfg.settings = p.settings;
 
-  const code=btoa(unescape(encodeURIComponent(JSON.stringify(cfg))));
-  let url=location.origin+location.pathname+'?access='+encodeURIComponent(code);
+  const json=JSON.stringify(cfg);
+  // LZ-сжатие даёт ~50–60% выигрыш на нашем JSON и помещается в лимит is.gd (5000 симв).
+  // Параметр z= — уже URI-safe (compressToEncodedURIComponent), encodeURIComponent не нужен.
+  let url;
+  if (typeof LZString!=='undefined') {
+    url = location.origin+location.pathname+'?z='+LZString.compressToEncodedURIComponent(json);
+  } else {
+    const code=btoa(unescape(encodeURIComponent(json)));
+    url = location.origin+location.pathname+'?access='+encodeURIComponent(code);
+  }
 
   let finalUrl=url, shortened=false;
   if(payload.shorten!==false){
