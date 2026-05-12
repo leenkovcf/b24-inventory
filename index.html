@@ -261,6 +261,107 @@ tbody tr:hover .hide-btn{display:inline}
 .toggle.on::after{transform:translateX(16px)}
 .admin-actions{display:flex;gap:8px;padding:10px 15px;border-top:1px solid var(--border)}
 .no-data{padding:40px;text-align:center;color:var(--muted);font-size:14px}
+
+/* STOCK CARDS (mobile) */
+.stock-cards{display:none;flex-direction:column;gap:6px;padding:8px}
+.stock-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.stock-card.is-hidden{display:none}
+.show-hidden .stock-card.is-hidden{display:block;opacity:.45}
+.stock-card-head{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;user-select:none}
+.stock-card-status{font-size:16px;flex-shrink:0;width:18px;text-align:center}
+.stock-card-status.s-ok{color:#22c55e}
+.stock-card-status.s-low{color:#eab308}
+.stock-card-status.s-warn{color:#f97316}
+.stock-card-status.s-zero{color:#ef4444}
+.stock-card-status.s-na{color:#cbd5e1}
+.stock-card-info{flex:1;min-width:0}
+.stock-card-name{font-size:13px;font-weight:600;color:var(--text);line-height:1.3;word-break:break-word}
+.stock-card-meta{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.3}
+.stock-card-total{font-size:15px;font-weight:700;color:var(--navy);white-space:nowrap}
+.stock-card-chev{font-size:12px;color:var(--muted);transition:transform .15s;flex-shrink:0}
+.stock-card.open .stock-card-chev{transform:rotate(180deg)}
+.stock-card-body{display:none;border-top:1px solid var(--border);background:#fafbfc}
+.stock-card.open .stock-card-body{display:block}
+.stock-card-row{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;font-size:13px;border-bottom:1px solid #eef2f7}
+.stock-card-row:last-child{border-bottom:none}
+.stock-card-row.is-hidden{opacity:.5}
+.stock-card-row .city-name{display:flex;align-items:center;gap:5px;color:var(--text);min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.amt-badge{font-weight:700;padding:2px 12px;border-radius:11px;min-width:42px;text-align:center;font-size:12px;flex-shrink:0;margin-left:8px}
+.amt-badge.b-ok{background:var(--green);color:var(--green-text)}
+.amt-badge.b-low{background:var(--yellow);color:var(--yellow-text)}
+.amt-badge.b-zero{background:var(--red);color:var(--red-text)}
+.amt-badge.b-na{background:#f1f5f9;color:#94a3b8}
+.amt-badge.b-neg{background:#f3e8ea;color:#7f1d1d}
+.stock-card-actions{display:flex;justify-content:flex-end;padding:6px 12px;border-top:1px solid #eef2f7;background:#fff}
+.stock-card-actions .btn-sm{font-size:11px;padding:3px 9px}
+
+/* MOBILE LAYOUT (≤700px) */
+@media(max-width:700px){
+  /* Header — компактная шапка только с иконками */
+  .app-header{padding:0 6px;gap:4px;height:46px}
+  .app-brand{font-size:0;gap:0;padding:0 4px}
+  .app-brand i{font-size:18px}
+  .tabs{gap:0;flex:1;justify-content:space-around}
+  .tab-btn{padding:0 10px;font-size:0;min-width:0;flex:1;height:46px;justify-content:center;border-bottom-width:3px}
+  .tab-btn i{font-size:18px;margin:0}
+  .header-actions{gap:2px}
+  #last-update,#refresh-cd,.role-badge{display:none}
+  .sync-badge{font-size:0;width:8px;height:8px;padding:0;border-radius:50%}
+  .icon-btn{width:34px;height:34px;font-size:14px}
+
+  /* Filter bar — компактный flex-wrap (без overflow:auto, иначе ломаются дропдауны) */
+  .filter-bar{padding:6px 8px}
+  .filter-row{gap:5px}
+  .filter-spacer{display:none}
+  .search-wrap,.dd-wrap{flex:1 1 auto;min-width:0}
+  .search-box{width:100%;min-width:120px;font-size:13px;padding:6px 10px 6px 28px}
+  .dd-btn,.btn{font-size:13px;padding:6px 10px}
+  .dd-btn{width:100%;justify-content:space-between}
+
+  /* Остатки — карточки вместо таблицы */
+  #tbl{display:none !important}
+  .stock-cards{display:flex}
+  .summary-bar{padding:6px 10px;gap:10px;font-size:11px;flex-wrap:wrap}
+  .summary-bar .legend{display:none}
+
+  /* Аналитика */
+  .analytics-wrap{padding:10px;gap:12px}
+  .alerts-grid{grid-template-columns:1fr}
+  .kpi-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .kpi-card{padding:10px;gap:2px}
+  .kpi-value{font-size:18px}
+  .kpi-label{font-size:10px}
+  .kpi-sub{font-size:10px}
+  .charts-row{grid-template-columns:1fr}
+  .chart-body.bar-h{height:280px}
+  .analytics-main{grid-template-columns:1fr}
+  .a-table th,.a-table td{padding:7px 10px;font-size:11px}
+  .a-table-title{padding:10px 12px;font-size:12px}
+
+  /* Дефицит */
+  .runout-filters{padding:8px 10px;gap:6px}
+
+  /* Управление */
+  .admin-wrap{padding:10px;gap:12px}
+  .admin-grid{grid-template-columns:1fr;gap:12px}
+  .admin-list{max-height:280px}
+  .admin-item{padding:9px 12px}
+
+  /* Модалка профиля */
+  .modal-card{padding:18px;max-height:92vh}
+  .pm-city-grid{grid-template-columns:1fr 1fr;max-height:200px}
+  .pm-chk-grid{grid-template-columns:1fr}
+  .pm-roles{gap:6px}
+  .pm-role-opt{font-size:12px}
+
+  /* Период-бар */
+  #period-bar{padding:6px 10px;gap:5px;flex-wrap:wrap}
+  #period-bar .btn-sm{font-size:11px;padding:4px 10px}
+
+  /* Setup */
+  .setup-card{padding:22px}
+  .role-grid{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
@@ -461,6 +562,7 @@ tbody tr:hover .hide-btn{display:inline}
     </div>
     <div class="table-wrap" id="table-wrap">
       <table id="tbl"><thead id="tbl-head"></thead><tbody id="tbl-body"></tbody></table>
+      <div class="stock-cards" id="stock-cards"></div>
       <div class="no-data" id="no-data" style="display:none">Нет данных по выбранным фильтрам</div>
     </div>
     <div class="summary-bar">
@@ -1171,7 +1273,7 @@ function renderStock(){
   }
 
   const tbl=document.getElementById('tbl'),noData=document.getElementById('no-data');
-  if(!visProducts.length||!visStores.length){tbl.style.display='none';noData.style.display='block';updateStats(0,0,0);return;}
+  if(!visProducts.length||!visStores.length){tbl.style.display='none';document.getElementById('stock-cards').innerHTML='';noData.style.display='block';updateStats(0,0,0);return;}
   tbl.style.display='';noData.style.display='none';
 
   const hcSet=getHiddenCitiesSet();
@@ -1209,6 +1311,73 @@ function renderStock(){
   document.getElementById('tbl-body').innerHTML=body;
   document.getElementById('table-wrap').classList.toggle('show-hidden',showHidden);
   updateStats(visProducts.filter(p=>!p.hidden).length,visStores.length,zeros);
+
+  // Карточный вид для мобильного — рендерится всегда, видим только на узком экране (CSS @media)
+  renderStockCards(visProducts, visStores, hcSet, canHide);
+}
+
+// Карточный вид списка товаров — для мобильного экрана.
+// Каждый товар = карточка со «светофором», тап раскрывает список городов с остатками.
+function renderStockCards(visProducts, visStores, hcSet, canHide){
+  const root=document.getElementById('stock-cards');
+  if(!root) return;
+  const html=visProducts.map(p=>{
+    const items=visStores.map(s=>{
+      const sid=String(s.id);
+      return {sid,city:cityName(s.title),amt:stock[p.id]?.[sid]??null,hidden:hcSet.has(sid)};
+    });
+    const valid=items.filter(i=>i.amt!==null);
+    let total=0,zeros=0,lows=0,oks=0,minVal=Infinity,minCity='';
+    valid.forEach(i=>{
+      total+=i.amt;
+      if(i.amt===0) zeros++;
+      else if(i.amt<0){/* neg → не считаем как ok */}
+      else if(i.amt<=LOW_STOCK){lows++; if(i.amt<minVal){minVal=i.amt;minCity=i.city;}}
+      else {oks++; if(i.amt<minVal){minVal=i.amt;minCity=i.city;}}
+    });
+    let status='na', icon='dash-circle';
+    if(valid.length){
+      if(zeros===valid.length){status='zero';icon='x-circle-fill';}
+      else if(zeros>0){status='warn';icon='exclamation-triangle-fill';}
+      else if(lows>0){status='low';icon='exclamation-circle-fill';}
+      else {status='ok';icon='check-circle-fill';}
+    }
+    let meta;
+    if(!valid.length) meta='нет данных по складам';
+    else if(zeros===valid.length) meta=`нет ни в одном городе (${valid.length})`;
+    else if(zeros>0) meta=`${valid.length} гор. · нулей: ${zeros} · мин ${minVal} в ${esc(minCity)}`;
+    else meta=`${valid.length} гор. · мин ${minVal} в ${esc(minCity)}`;
+
+    const rows=items.map(i=>{
+      let cls='b-na', disp='—';
+      if(i.amt!==null){
+        if(i.amt<0){cls='b-neg';disp=i.amt;}
+        else if(i.amt===0){cls='b-zero';disp='нет';}
+        else if(i.amt<=LOW_STOCK){cls='b-low';disp=i.amt;}
+        else {cls='b-ok';disp=i.amt;}
+      }
+      const eyeOff=i.hidden?'<i class="bi bi-eye-slash" style="font-size:10px;opacity:.5"></i>':'';
+      return `<div class="stock-card-row${i.hidden?' is-hidden':''}"><span class="city-name">${esc(i.city)} ${eyeOff}</span><span class="amt-badge ${cls}">${disp}</span></div>`;
+    }).join('');
+
+    const hideBtn = canHide
+      ? `<div class="stock-card-actions"><button class="btn-sm" onclick="event.stopPropagation();toggleHideProd('${p.id}')"><i class="bi ${p.hidden?'bi-eye':'bi-eye-slash'}"></i> ${p.hidden?'Показать':'Скрыть'}</button></div>`
+      : '';
+
+    return `<div class="stock-card${p.hidden?' is-hidden':''}">
+      <div class="stock-card-head" onclick="this.parentNode.classList.toggle('open')">
+        <i class="bi bi-${icon} stock-card-status s-${status}"></i>
+        <div class="stock-card-info">
+          <div class="stock-card-name">${esc(p.name)}${p.hidden?' <span class="hidden-label">скрыт</span>':''}</div>
+          <div class="stock-card-meta">${meta}</div>
+        </div>
+        <div class="stock-card-total">${fmtNum(total)}</div>
+        <i class="bi bi-chevron-down stock-card-chev"></i>
+      </div>
+      <div class="stock-card-body">${rows}${hideBtn}</div>
+    </div>`;
+  }).join('');
+  root.innerHTML=html;
 }
 
 // ================================================================
@@ -2090,6 +2259,17 @@ function toggleDD(id){
   if(!isOpen) wrap.classList.add('open');
 }
 document.addEventListener('click',e=>{if(!e.target.closest('.dd-wrap'))document.querySelectorAll('.dd-wrap.open').forEach(w=>w.classList.remove('open'));});
+
+// При повороте/изменении окна перерисовываем активную вкладку — Аналитика и графики
+// должны перестроиться под новую ширину, иначе Chart.js остаётся в старом размере.
+let _resizeTm=null;
+window.addEventListener('resize',()=>{
+  clearTimeout(_resizeTm);
+  _resizeTm=setTimeout(()=>{
+    if(currentTab==='analytics') renderAnalytics();
+    if(currentTab==='runout')    renderRunout();
+  },200);
+});
 
 function sortByCity(storeId){
   if(sortStore===storeId){sortDir=sortDir===1?-1:(sortDir===-1?0:1);if(sortDir===0)sortStore=null;}
