@@ -50,7 +50,18 @@ body{font-family:-apple-system,Arial,sans-serif;font-size:13px;background:var(--
 .pm-city-item{display:flex;align-items:center;gap:6px;padding:5px 7px;border-radius:5px;cursor:pointer;font-size:12px}
 .pm-city-item:hover{background:var(--blue-light)}
 .pm-city-item input{accent-color:var(--blue);width:13px;height:13px}
-.pm-city-header{display:flex;gap:6px;margin-top:6px;margin-bottom:4px}
+.pm-city-item.pm-hide{display:none}
+.pm-city-header{display:flex;gap:6px;margin-top:6px;margin-bottom:4px;align-items:center;flex-wrap:wrap}
+.pm-city-search{flex:1;min-width:140px;padding:5px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:12px}
+.pm-city-search:focus{outline:none;border-color:var(--blue)}
+.pm-adv-toggle{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;color:var(--blue);padding:8px 0;user-select:none}
+.pm-adv-body{display:none;padding:10px 0 0;border-top:1px dashed var(--border);margin-top:6px}
+.pm-adv-body.open{display:block}
+.pm-chk-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:4px}
+.pm-chk{display:flex;align-items:center;gap:6px;font-size:12px;padding:4px 6px;border-radius:5px;cursor:pointer}
+.pm-chk:hover{background:var(--blue-light)}
+.pm-chk input{accent-color:var(--blue);width:13px;height:13px}
+.pm-sub-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:10px;display:block}
 .modal-actions{display:flex;gap:8px;margin-top:18px}
 .profile-row{display:flex;align-items:center;padding:10px 15px;gap:10px;border-bottom:1px solid #f0f4f8}
 .profile-row:last-child{border-bottom:none}
@@ -142,6 +153,8 @@ tbody tr:hover td{filter:brightness(.96)}
 tbody tr.hidden-row{display:none}
 .show-hidden tbody tr.hidden-row{display:table-row}
 .show-hidden tbody tr.hidden-row td{opacity:.35}
+.show-hidden thead th.hidden-store-col{background:#fef3c7;color:#92400e}
+.show-hidden tbody td.hidden-store-col{opacity:.4;background:#fffbeb}
 tbody td{border:1px solid #f0f4f8;padding:4px 6px;text-align:right;white-space:nowrap}
 tbody td.product-col{position:sticky;left:0;background:#fafbfc;z-index:50;text-align:left;font-size:12px;border-right:2px solid var(--border);max-width:230px;white-space:normal;word-break:break-word}
 tbody td.amount-ok{background:var(--green);color:var(--green-text)}
@@ -302,13 +315,66 @@ tbody tr:hover .hide-btn{display:inline}
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">Города (не выбрано = все)</label>
+      <label class="form-label" id="pm-cities-label">Города (не выбрано = все)</label>
       <div class="pm-city-header">
-        <button class="dd-hbtn" onclick="pmSelectAll(true)">Выбрать все</button>
-        <button class="dd-hbtn" onclick="pmSelectAll(false)">Снять все</button>
+        <input type="text" class="pm-city-search" id="pm-city-search" placeholder="Поиск города..." oninput="pmFilterCities()">
+        <button class="dd-hbtn" onclick="pmSelectAll(true)">Все</button>
+        <button class="dd-hbtn" onclick="pmSelectAll(false)">Снять</button>
+        <button class="dd-hbtn" onclick="pmInvertSelection()">Инвертировать</button>
       </div>
       <div class="pm-city-grid" id="pm-cities"></div>
     </div>
+
+    <div id="pm-adv-section">
+      <div class="pm-adv-toggle" onclick="pmToggleAdv()">
+        <i class="bi bi-chevron-right" id="pm-adv-arrow" style="transition:transform .2s"></i>
+        <span>Расширенные настройки ссылки</span>
+      </div>
+      <div class="pm-adv-body" id="pm-adv-body">
+        <span class="pm-sub-label">Доступные вкладки</span>
+        <div class="pm-chk-grid" id="pm-tabs">
+          <label class="pm-chk"><input type="checkbox" value="stock" checked> Остатки</label>
+          <label class="pm-chk"><input type="checkbox" value="analytics" checked> Аналитика</label>
+          <label class="pm-chk"><input type="checkbox" value="runout" checked> Дефицит</label>
+          <label class="pm-chk" id="pm-tab-admin-wrap"><input type="checkbox" value="admin"> Управление</label>
+        </div>
+
+        <span class="pm-sub-label">Блоки аналитики</span>
+        <div class="pm-chk-grid" id="pm-widgets">
+          <label class="pm-chk"><input type="checkbox" value="warnings" checked> Предупреждения</label>
+          <label class="pm-chk"><input type="checkbox" value="kpi" checked> KPI-карточки</label>
+          <label class="pm-chk"><input type="checkbox" value="topChart" checked> Топ-15 (график)</label>
+          <label class="pm-chk"><input type="checkbox" value="donutChart" checked> Наличие (диаграмма)</label>
+          <label class="pm-chk"><input type="checkbox" value="abc" checked> ABC-анализ</label>
+          <label class="pm-chk"><input type="checkbox" value="fastCities" checked> Быстрые города</label>
+          <label class="pm-chk"><input type="checkbox" value="slowCities" checked> Медленные города</label>
+          <label class="pm-chk"><input type="checkbox" value="matchBadge" checked> Качество данных</label>
+        </div>
+
+        <span class="pm-sub-label">Настройки</span>
+        <div class="form-group" style="margin-top:6px;margin-bottom:8px">
+          <label style="font-size:12px;color:var(--muted)">Период продаж по умолчанию:</label>
+          <div style="display:flex;gap:6px;margin-top:4px">
+            <label class="pm-chk" style="flex:1"><input type="radio" name="pm-sales-days" value="30"> 30 дн.</label>
+            <label class="pm-chk" style="flex:1"><input type="radio" name="pm-sales-days" value="60"> 60 дн.</label>
+            <label class="pm-chk" style="flex:1"><input type="radio" name="pm-sales-days" value="90" checked> 90 дн.</label>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:8px">
+          <label style="font-size:12px;color:var(--muted)">Исключить воронки CRM (ID через запятую):</label>
+          <input type="text" id="pm-excl-cat" class="form-input" placeholder="напр. 5" style="font-size:12px;margin-top:4px">
+        </div>
+
+        <span class="pm-sub-label">Что включить в ссылку</span>
+        <div class="pm-chk-grid" id="pm-payload" style="margin-bottom:6px">
+          <label class="pm-chk"><input type="checkbox" id="pm-inc-hp" checked> Скрытые товары (текущие)</label>
+          <label class="pm-chk"><input type="checkbox" id="pm-inc-hc" checked> Скрытые города (текущие)</label>
+          <label class="pm-chk" id="pm-inc-profiles-wrap"><input type="checkbox" id="pm-inc-profiles"> Список всех профилей</label>
+          <label class="pm-chk"><input type="checkbox" id="pm-inc-shorten" checked> Сократить ссылку (is.gd)</label>
+        </div>
+      </div>
+    </div>
+
     <div class="modal-actions">
       <button class="btn-submit" style="width:auto;padding:9px 22px" onclick="saveProfile()">Сохранить</button>
       <button class="btn" onclick="closeProfileModal()">Отмена</button>
@@ -380,6 +446,15 @@ tbody tr:hover .hide-btn{display:inline}
           </div>
         </div>
         <button class="btn" id="btn-hidden" onclick="toggleShowHidden()"><i class="bi bi-eye-slash"></i> Скрытые</button>
+        <div class="dd-wrap" id="viewas-dd" style="display:none">
+          <button class="dd-btn" onclick="toggleDD('viewas-dd')">
+            <i class="bi bi-person-badge"></i><span id="viewas-label">Просмотр от лица</span>
+            <i class="bi bi-chevron-down dd-arrow"></i>
+          </button>
+          <div class="dd-panel wide" id="viewas-dd-panel">
+            <div class="dd-items" id="viewas-dd-items"></div>
+          </div>
+        </div>
         <div class="filter-spacer"></div>
         <button class="btn" onclick="exportCSV()" title="Экспорт в Excel CSV"><i class="bi bi-file-earmark-arrow-down"></i> Excel</button>
       </div>
@@ -469,43 +544,6 @@ tbody tr:hover .hide-btn{display:inline}
           </div>
         </div>
 
-        <!-- CRM Pipeline Filter -->
-        <div class="admin-section">
-          <div class="admin-section-header">
-            <span class="admin-section-title"><i class="bi bi-funnel"></i> Фильтр воронок CRM
-              <span class="help-tip" data-tip="Воронка «Маркетплейсы» не списывает товары со склада — исключите её из аналитики продаж. ID воронок видно в диагностике ниже.">?</span>
-            </span>
-          </div>
-          <div style="padding:10px 15px">
-            <label class="form-label" style="font-size:12px">Исключить воронки из аналитики продаж (ID через запятую):</label>
-            <div style="display:flex;gap:8px;margin-top:4px">
-              <input type="text" id="excl-cat-input" class="form-input" placeholder="напр. 5" style="flex:1;font-size:13px">
-              <button class="btn-sm" onclick="saveExclCat()">Сохранить</button>
-            </div>
-            <div class="form-hint" style="margin-top:4px">Запустите диагностику ниже — там видны ID и названия всех воронок.</div>
-          </div>
-        </div>
-
-        <!-- Sync Diagnostic -->
-        <div class="admin-section">
-          <div class="admin-section-header">
-            <span class="admin-section-title"><i class="bi bi-cloud-check"></i> Синхронизация настроек</span>
-            <button class="btn-sm" onclick="runSyncDiagnostic()"><i class="bi bi-arrow-repeat"></i> Проверить и синхронизировать</button>
-          </div>
-          <div id="sync-diag-output" style="padding:10px 15px;font-size:12px;color:var(--muted)">Нажмите кнопку — проверит, что Битрикс24 хранит актуальные настройки (скрытые товары/города/профили)</div>
-        </div>
-
-        <!-- CRM Diagnostic -->
-        <div class="admin-section">
-          <div class="admin-section-header">
-            <span class="admin-section-title">
-              <i class="bi bi-bug"></i> Диагностика данных CRM
-              <span class="help-tip" data-tip="Проверяет 5 последних закрытых сделок:\n• Правильно ли читается поле UF_CRM_SHOP (привязка к складу)\n• Совпадают ли ID товаров в сделках с ID в каталоге склада\n\nЕсли ID не совпадают — данные о продажах считаются неверно.">?</span>
-            </span>
-            <button class="btn-sm" onclick="runCrmDiagnostic()"><i class="bi bi-play-circle"></i> Запустить проверку</button>
-          </div>
-          <div id="diag-output" style="padding:10px 15px;font-size:12px;color:var(--muted)">Нажмите «Запустить проверку» для анализа данных</div>
-        </div>
       </div>
     </div>
   </div>
@@ -527,6 +565,10 @@ const MY_CITIES_KEY   = 'inv_my_cities_v1';
 const PROFILES_KEY    = 'inv_profiles_v1';
 const PROFILE_NAME_KEY = 'inv_profile_name_v1';
 const PROFILE_ID_KEY  = 'inv_profile_id_v1';
+const ALLOWED_TABS_KEY = 'inv_allowed_tabs_v1';
+const ALLOWED_WIDGETS_KEY = 'inv_allowed_widgets_v1';
+const ALL_TABS    = ['stock','analytics','runout','admin'];
+const ALL_WIDGETS = ['warnings','kpi','topChart','donutChart','abc','fastCities','slowCities','matchBadge'];
 const OPT_MODULE      = 'inv_warehouse_v2';
 const OPT_KEY         = 'shared_cfg';
 const REFRESH_SEC     = 600;
@@ -566,6 +608,9 @@ let runoutLoading = false;
 let runoutStatus  = '';
 let runoutDealsLoaded = 0;
 let runoutDealsTotal  = 0;
+let allowedTabs    = null;   // null = all tabs
+let allowedWidgets = null;   // null = all widgets
+let viewAsProfileId = '';    // '' = own view (admin/director only)
 
 // ================================================================
 // TOOLTIP
@@ -604,12 +649,22 @@ let runoutDealsTotal  = 0;
       if (cfg.id)     localStorage.setItem(PROFILE_ID_KEY, cfg.id);
       if (cfg.hp)     localStorage.setItem(HIDDEN_PRODS_KEY, JSON.stringify(cfg.hp));
       if (cfg.hc)     localStorage.setItem(HIDDEN_CITIES_KEY, JSON.stringify(cfg.hc));
+      if (cfg.tabs && Array.isArray(cfg.tabs))       { allowedTabs    = cfg.tabs;    localStorage.setItem(ALLOWED_TABS_KEY, JSON.stringify(cfg.tabs)); }
+      if (cfg.widgets && Array.isArray(cfg.widgets)) { allowedWidgets = cfg.widgets; localStorage.setItem(ALLOWED_WIDGETS_KEY, JSON.stringify(cfg.widgets)); }
+      if (cfg.settings) {
+        if (cfg.settings.salesDays) { SALES_DAYS = cfg.settings.salesDays; localStorage.setItem(SALES_DAYS_KEY, cfg.settings.salesDays); }
+        if (cfg.settings.exclCat !== undefined) localStorage.setItem(EXCL_CAT_KEY, cfg.settings.exclCat);
+      }
+      if (cfg.profiles && Array.isArray(cfg.profiles)) localStorage.setItem(PROFILES_KEY, JSON.stringify(cfg.profiles));
       history.replaceState({}, '', location.pathname);
     } catch(e) { console.warn('access param parse error', e); }
   } else {
     userRole = localStorage.getItem(ROLE_KEY) || 'admin';
     myCities = getMyCitiesSet();
   }
+  // Восстанавливаем сохранённые ограничения вкладок/виджетов (из ранее открытой ссылки)
+  try { const t=JSON.parse(localStorage.getItem(ALLOWED_TABS_KEY)||'null');    if(Array.isArray(t)) allowedTabs=t; } catch{}
+  try { const w=JSON.parse(localStorage.getItem(ALLOWED_WIDGETS_KEY)||'null'); if(Array.isArray(w)) allowedWidgets=w; } catch{}
 
   const profileName = localStorage.getItem(PROFILE_NAME_KEY);
   if (profileName && userRole !== 'admin') {
@@ -649,7 +704,7 @@ async function saveWebhook() {
 
 function resetSettings() {
   if (!confirm('Сбросить подключение и настройки?')) return;
-  [WEBHOOK_KEY, ROLE_KEY, MY_CITIES_KEY, PROFILE_NAME_KEY].forEach(k => localStorage.removeItem(k));
+  [WEBHOOK_KEY, ROLE_KEY, MY_CITIES_KEY, PROFILE_NAME_KEY, ALLOWED_TABS_KEY, ALLOWED_WIDGETS_KEY].forEach(k => localStorage.removeItem(k));
   location.reload();
 }
 
@@ -791,6 +846,29 @@ function applyRoleUI() {
   if (!canAnalytics) document.getElementById('tab-analytics-btn').style.display='none';
   if (!canAnalytics) document.getElementById('tab-runout-btn').style.display='none';
   if (userRole!=='admin') document.getElementById('btn-reset-settings').style.display='none';
+
+  // Применить ограничения по вкладкам из ссылки/профиля (более узкие, чем роль)
+  if (allowedTabs && Array.isArray(allowedTabs)) {
+    const map = {stock:'tab-btn',analytics:'tab-analytics-btn',runout:'tab-runout-btn',admin:'tab-admin-btn'};
+    if (!allowedTabs.includes('analytics')) document.getElementById('tab-analytics-btn').style.display='none';
+    if (!allowedTabs.includes('runout'))    document.getElementById('tab-runout-btn').style.display='none';
+    if (!allowedTabs.includes('admin'))     document.getElementById('tab-admin-btn').style.display='none';
+    if (!allowedTabs.includes('stock')) {
+      // первая вкладка — скрыть и переключиться
+      document.querySelectorAll('.tab-btn')[0].style.display='none';
+      const first = ['analytics','runout','admin'].find(t=>allowedTabs.includes(t));
+      if (first) {
+        document.getElementById('tab-stock').classList.remove('active');
+        document.getElementById('tab-'+first).classList.add('active');
+        currentTab=first;
+      }
+    }
+  }
+  renderViewAsDropdown();
+}
+
+function isWidgetVisible(name){
+  return !allowedWidgets || allowedWidgets.includes(name);
 }
 
 async function loadProducts(ids) {
@@ -1042,8 +1120,17 @@ async function fetchAll(method,params,p0,p1){
 // ================================================================
 function getVisStores(cityQ){
   const hc=getHiddenCitiesSet();
-  let vis=stores.filter(s=>!hc.has(String(s.id))).filter(s=>!cityQ||cityName(s.title).toLowerCase().includes(cityQ));
+  // showHidden = true → не отфильтровываем скрытые города (для отладки/просмотра)
+  let vis = showHidden
+    ? stores.slice()
+    : stores.filter(s=>!hc.has(String(s.id)));
+  vis = vis.filter(s=>!cityQ||cityName(s.title).toLowerCase().includes(cityQ));
   if((userRole==='regional'||userRole==='operator')&&myCities.size>0) vis=vis.filter(s=>myCities.has(String(s.id)));
+  // Просмотр от лица профиля (только для admin/director)
+  if((userRole==='admin'||userRole==='director') && viewAsProfileId){
+    const p=getProfiles().find(pr=>pr.id===viewAsProfileId);
+    if(p && p.cities && p.cities.length>0) vis=vis.filter(s=>p.cities.includes(String(s.id)));
+  }
   return vis;
 }
 
@@ -1079,12 +1166,15 @@ function renderStock(){
   if(!visProducts.length||!visStores.length){tbl.style.display='none';noData.style.display='block';updateStats(0,0,0);return;}
   tbl.style.display='';noData.style.display='none';
 
+  const hcSet=getHiddenCitiesSet();
   let head='<tr><th class="product-col">Товар</th>';
   visStores.forEach(s=>{
     const sid=String(s.id),city=esc(cityName(s.title));
     let cls='store-col',arrow='';
     if(sortStore===sid){cls+=sortDir===1?' s-desc':' s-asc';arrow=sortDir===1?' ↓':' ↑';}
-    head+=`<th class="${cls}" onclick="sortByCity('${sid}')" title="${esc(s.title)}">${city}${arrow}</th>`;
+    if(hcSet.has(sid)) cls+=' hidden-store-col';
+    const titleSuf=hcSet.has(sid)?' [скрыт]':'';
+    head+=`<th class="${cls}" onclick="sortByCity('${sid}')" title="${esc(s.title)}${titleSuf}">${city}${arrow}${hcSet.has(sid)?' <i class="bi bi-eye-slash" style="font-size:9px;opacity:.6"></i>':''}</th>`;
   });
   head+='<th class="total-col">Итого</th></tr>';
   document.getElementById('tbl-head').innerHTML=head;
@@ -1103,6 +1193,7 @@ function renderStock(){
       total+=amt||0;
       let cls='amount-na',disp='';
       if(amt!==null){if(amt<0){cls='amount-neg';disp=amt;}else if(amt===0){cls='amount-zero';disp='—';zeros++;}else if(amt<=LOW_STOCK){cls='amount-low';disp=amt;}else{cls='amount-ok';disp=amt;}}
+      if(hcSet.has(sid)) cls+=' hidden-store-col';
       body+=`<td class="${cls}" title="${esc(s.title)}: ${amt??'—'}">${disp}</td>`;
     });
     body+=`<td class="total-col">${total}</td></tr>`;
@@ -1157,7 +1248,7 @@ function renderAnalytics(){
   // Warnings
   let warnHTML='';
   if(zeroEverywhere.length||criticalCities.length){
-    warnHTML='<div class="alerts-grid">';
+    warnHTML='<div class="alerts-grid" data-widget="warnings">';
     if(zeroEverywhere.length){
       const vis=zeroEverywhere.slice(0,8).map(p=>`<li>${esc(p.name)}</li>`).join('');
       const hid=zeroEverywhere.slice(8).map(p=>`<li>${esc(p.name)}</li>`).join('');
@@ -1224,14 +1315,14 @@ function renderAnalytics(){
       const weakCities=[...cityVel].sort((a,b)=>a.velocity-b.velocity);
       const TIP_VEL=`Скорость продаж — среднее кол-во товаров,\nпродаваемых в день за последние ${SALES_DAYS} дней.\n\nГруппирует несколько складов одного города вместе.`;
       const mkCityRows=(arr,cls,start=0)=>arr.map((c,i)=>`<tr><td class="rank">${start+i+1}</td><td class="name">${esc(c.name)}</td><td class="val ${cls}">${fmtVel(c.velocity)} шт./д</td></tr>`).join('');
-      const mkCitySection=(title,icon,color,all,idSuf)=>{
+      const mkCitySection=(title,icon,color,all,idSuf,widgetName)=>{
         const top=all.slice(0,10), rest=all.slice(10);
         const restHtml=rest.length?`<div id="${idSuf}" style="display:none;border-top:1px solid var(--border)"><table class="a-table"><tbody>${mkCityRows(rest,icon==='good'?'good':'bad',10)}</tbody></table></div><button class="btn-sm" style="margin:6px 0 4px 8px;font-size:11px" onclick="toggleMore('${idSuf}',this,${all.length})">Показать все (${all.length})</button>`:'';
-        return`<div class="a-table-wrap"><div class="a-table-title">${title}</div><div style="max-height:400px;overflow-y:auto"><table class="a-table"><tbody>${mkCityRows(top,icon==='good'?'good':'bad')}</tbody></table>${restHtml}</div></div>`;
+        return`<div class="a-table-wrap" data-widget="${widgetName}"><div class="a-table-title">${title}</div><div style="max-height:400px;overflow-y:auto"><table class="a-table"><tbody>${mkCityRows(top,icon==='good'?'good':'bad')}</tbody></table>${restHtml}</div></div>`;
       };
       citySection=
-        mkCitySection(`<i class="bi bi-lightning-charge" style="color:#16a34a"></i> Быстрые города <span class="help-tip" data-tip="${TIP_VEL}">?</span>`,'good','#16a34a',strongCities,'fast-more')+
-        mkCitySection(`<i class="bi bi-hourglass" style="color:#dc2626"></i> Медленные города <span class="help-tip" data-tip="${TIP_VEL}">?</span>`,'bad','#dc2626',weakCities,'slow-more');
+        mkCitySection(`<i class="bi bi-lightning-charge" style="color:#16a34a"></i> Быстрые города <span class="help-tip" data-tip="${TIP_VEL}">?</span>`,'good','#16a34a',strongCities,'fast-more','fastCities')+
+        mkCitySection(`<i class="bi bi-hourglass" style="color:#dc2626"></i> Медленные города <span class="help-tip" data-tip="${TIP_VEL}">?</span>`,'bad','#dc2626',weakCities,'slow-more','slowCities');
     }
 
     // Total stock value (using prices from CRM deal rows)
@@ -1254,17 +1345,17 @@ function renderAnalytics(){
     salesHTML=`
       ${modeNote}
       <div class="charts-row">
-        <div class="chart-card">
+        <div class="chart-card" data-widget="topChart">
           <div class="a-table-title"><i class="bi bi-bar-chart-horizontal"></i> Топ-15 товаров по продажам (${SALES_DAYS} дн.)</div>
           <div class="chart-body bar-h"><canvas id="chart-bar"></canvas></div>
         </div>
-        <div class="chart-card">
+        <div class="chart-card" data-widget="donutChart">
           <div class="a-table-title"><i class="bi bi-pie-chart"></i> Наличие на складах</div>
           <div class="chart-body donut-h"><canvas id="chart-doughnut"></canvas></div>
         </div>
       </div>
       <div class="analytics-main">
-        <div class="a-table-wrap">
+        <div class="a-table-wrap" data-widget="abc">
           <div class="a-table-title">
             <i class="bi bi-grid-1x2"></i> ABC-анализ по продажам
             <span class="help-tip" data-tip="${TIP_ABC.replace(/"/g,'&quot;')}">?</span>
@@ -1312,7 +1403,7 @@ function renderAnalytics(){
 
   // Data quality badge: show deal match stats when sales data is ready
   const matchBadge = !salesLoading && salesDealsTotal>0
-    ? `<div style="font-size:11px;color:var(--muted);padding:4px 0 0">
+    ? `<div data-widget="matchBadge" style="font-size:11px;color:var(--muted);padding:4px 0 0">
         <i class="bi bi-database-check"></i> Загружено <b>${fmtNum(salesDealsTotal)}</b> сделок за ${SALES_DAYS} дн. &nbsp;·&nbsp; совпало со складами: <b>${fmtNum(salesDealsMatched)}</b> (${salesMatchRate}%)
         ${salesMatchRate<60?'<span style="color:#dc2626"> — проверьте поле UF_CRM_SHOP в сделках</span>':''}</div>`
     : '';
@@ -1323,7 +1414,7 @@ function renderAnalytics(){
 
   wrap.innerHTML=`
     ${warnHTML}
-    <div class="kpi-grid">
+    <div class="kpi-grid" data-widget="kpi">
       <div class="kpi-card"><div class="kpi-label">Товаров</div><div class="kpi-value">${prods.length}</div><div class="kpi-sub">видимых позиций</div></div>
       <div class="kpi-card"><div class="kpi-label">Городов</div><div class="kpi-value">${visStores.length}</div><div class="kpi-sub">активных складов</div></div>
       <div class="kpi-card ok"><div class="kpi-label">Суммарный остаток</div><div class="kpi-value">${fmtNum(totalUnits)}</div><div class="kpi-sub">единиц</div></div>
@@ -1333,6 +1424,13 @@ function renderAnalytics(){
     </div>
     ${matchBadge}
     ${salesHTML}`;
+
+  // Скрыть отключённые виджеты по allowedWidgets (если задано через ссылку профиля)
+  if (allowedWidgets && Array.isArray(allowedWidgets)) {
+    wrap.querySelectorAll('[data-widget]').forEach(el=>{
+      if (!allowedWidgets.includes(el.dataset.widget)) el.style.display='none';
+    });
+  }
 }
 
 // ================================================================
@@ -1419,32 +1517,109 @@ function openProfileModal(id){
   const role=p?p.role:'regional';
   document.querySelector(`input[name="pm-role"][value="${role}"]`).checked=true;
   const saved=new Set(p?p.cities:[]);
-  const hc=getHiddenCitiesSet();
-  document.getElementById('pm-cities').innerHTML=stores.filter(s=>!hc.has(String(s.id))).map(s=>{
+  // ВСЕ города (включая скрытые) для гибкого выбора
+  document.getElementById('pm-cities').innerHTML=stores.map(s=>{
     const sid=String(s.id),chk=saved.has(sid)?'checked':'';
-    return `<label class="pm-city-item"><input type="checkbox" value="${sid}" ${chk}><span>${esc(cityName(s.title))}</span></label>`;
+    return `<label class="pm-city-item" data-name="${esc(cityName(s.title).toLowerCase())}"><input type="checkbox" value="${sid}" ${chk}><span>${esc(cityName(s.title))}</span></label>`;
   }).join('');
+  document.getElementById('pm-city-search').value='';
+
+  // Расширенные опции — восстанавливаем сохранённые или дефолтные
+  const tabs    = p?.tabs    || [...ALL_TABS];
+  const widgets = p?.widgets || [...ALL_WIDGETS];
+  document.querySelectorAll('#pm-tabs input').forEach(cb=>{cb.checked=tabs.includes(cb.value);});
+  document.querySelectorAll('#pm-widgets input').forEach(cb=>{cb.checked=widgets.includes(cb.value);});
+
+  const sd = p?.settings?.salesDays ?? 90;
+  const sdInp = document.querySelector(`input[name="pm-sales-days"][value="${sd}"]`);
+  if(sdInp) sdInp.checked=true;
+  document.getElementById('pm-excl-cat').value = p?.settings?.exclCat ?? (localStorage.getItem(EXCL_CAT_KEY)||'');
+
+  document.getElementById('pm-inc-hp').checked       = p?.payload?.hp ?? true;
+  document.getElementById('pm-inc-hc').checked       = p?.payload?.hc ?? true;
+  document.getElementById('pm-inc-profiles').checked = p?.payload?.profiles ?? false;
+  document.getElementById('pm-inc-shorten').checked  = p?.payload?.shorten ?? true;
+
+  // Видимость опций по роли
+  pmSyncRoleUI();
+  document.querySelectorAll('input[name="pm-role"]').forEach(r=>r.onchange=pmSyncRoleUI);
+
+  // Свернуть «расширенные настройки» по умолчанию
+  document.getElementById('pm-adv-body').classList.remove('open');
+  document.getElementById('pm-adv-arrow').style.transform='';
+
   document.getElementById('profile-modal').style.display='flex';
 }
+function pmSyncRoleUI(){
+  const role=document.querySelector('input[name="pm-role"]:checked')?.value||'regional';
+  const adminLevel = (role==='admin'||role==='director');
+  document.getElementById('pm-cities-label').textContent = adminLevel
+    ? 'Города (можно ничего не выбирать — будут видны все)'
+    : 'Города, доступные сотруднику (не выбрано = все)';
+  // Только admin/director может видеть вкладку «Управление» и список профилей
+  document.getElementById('pm-tab-admin-wrap').style.display = adminLevel?'':'none';
+  document.getElementById('pm-inc-profiles-wrap').style.display = adminLevel?'':'none';
+  if(!adminLevel){
+    const adm=document.querySelector('#pm-tabs input[value="admin"]'); if(adm) adm.checked=false;
+    document.getElementById('pm-inc-profiles').checked=false;
+  }
+}
+function pmToggleAdv(){
+  const body=document.getElementById('pm-adv-body'), arr=document.getElementById('pm-adv-arrow');
+  const open=body.classList.toggle('open');
+  arr.style.transform=open?'rotate(90deg)':'';
+}
+function pmFilterCities(){
+  const q=(document.getElementById('pm-city-search').value||'').toLowerCase().trim();
+  document.querySelectorAll('#pm-cities .pm-city-item').forEach(el=>{
+    el.classList.toggle('pm-hide', q && !el.dataset.name.includes(q));
+  });
+}
+function pmInvertSelection(){
+  document.querySelectorAll('#pm-cities .pm-city-item').forEach(el=>{
+    if(el.classList.contains('pm-hide')) return;
+    const cb=el.querySelector('input'); cb.checked=!cb.checked;
+  });
+}
 function closeProfileModal(){document.getElementById('profile-modal').style.display='none';editingProfileId=null;}
-function pmSelectAll(state){document.querySelectorAll('#pm-cities input').forEach(cb=>cb.checked=state);}
+function pmSelectAll(state){
+  // Действует только на видимые (отфильтрованные) элементы
+  document.querySelectorAll('#pm-cities .pm-city-item').forEach(el=>{
+    if(el.classList.contains('pm-hide')) return;
+    el.querySelector('input').checked=state;
+  });
+}
 
 function saveProfile(){
   const name=document.getElementById('pm-name').value.trim();
   if(!name){alert('Введите название профиля');return;}
   const role=document.querySelector('input[name="pm-role"]:checked')?.value||'regional';
   const cities=[...document.querySelectorAll('#pm-cities input:checked')].map(c=>c.value);
+  const tabs=[...document.querySelectorAll('#pm-tabs input:checked')].map(c=>c.value);
+  const widgets=[...document.querySelectorAll('#pm-widgets input:checked')].map(c=>c.value);
+  const settings={
+    salesDays: parseInt(document.querySelector('input[name="pm-sales-days"]:checked')?.value||'90'),
+    exclCat:   document.getElementById('pm-excl-cat').value.trim()
+  };
+  const payload={
+    hp:       document.getElementById('pm-inc-hp').checked,
+    hc:       document.getElementById('pm-inc-hc').checked,
+    profiles: document.getElementById('pm-inc-profiles').checked,
+    shorten:  document.getElementById('pm-inc-shorten').checked
+  };
   const profiles=getProfiles();
+  const data={name,role,cities,tabs,widgets,settings,payload};
   if(editingProfileId){
     const idx=profiles.findIndex(p=>p.id===editingProfileId);
-    if(idx>=0) profiles[idx]={...profiles[idx],name,role,cities};
+    if(idx>=0) profiles[idx]={...profiles[idx],...data};
   } else {
-    profiles.push({id:'p'+Date.now(),name,role,cities});
+    profiles.push({id:'p'+Date.now(),...data});
   }
   saveLocalProfiles(profiles);
   scheduleSave();
   closeProfileModal();
   renderProfiles();
+  renderViewAsDropdown();
 }
 
 function deleteProfile(id){
@@ -1452,17 +1627,84 @@ function deleteProfile(id){
   saveLocalProfiles(getProfiles().filter(p=>p.id!==id));
   scheduleSave();
   renderProfiles();
+  renderViewAsDropdown();
 }
 
-function copyProfileUrl(id){
+async function shortenUrl(url){
+  try{
+    const r=await fetch('https://is.gd/create.php?format=simple&url='+encodeURIComponent(url));
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const txt=(await r.text()).trim();
+    if(!/^https?:\/\//i.test(txt)) throw new Error(txt||'invalid response');
+    return txt;
+  }catch(e){console.warn('is.gd shorten failed:',e.message);return null;}
+}
+
+async function copyProfileUrl(id){
   const p=getProfiles().find(pr=>pr.id===id);
   if(!p) return;
-  const cfg=JSON.stringify({role:p.role,cities:p.cities,name:p.name,wh:WEBHOOK,id:p.id,hp:[...getHiddenProdsSet()],hc:[...getHiddenCitiesSet()]});
-  const code=btoa(unescape(encodeURIComponent(cfg)));
-  const url=location.origin+location.pathname+'?access='+encodeURIComponent(code);
-  navigator.clipboard.writeText(url).then(()=>{
-    alert('Ссылка скопирована!\n\nОтправьте её сотруднику. При открытии ссылки приложение запустится автоматически — вводить вебхук не нужно.');
-  }).catch(()=>prompt('Скопируйте ссылку:',url));
+  const payload=p.payload||{hp:true,hc:true,profiles:false,shorten:true};
+  const cfg={role:p.role,cities:p.cities,name:p.name,wh:WEBHOOK,id:p.id};
+  if(payload.hp) cfg.hp=[...getHiddenProdsSet()];
+  if(payload.hc) cfg.hc=[...getHiddenCitiesSet()];
+  if(payload.profiles && (p.role==='admin'||p.role==='director')) cfg.profiles=getProfiles();
+  if(p.tabs    && p.tabs.length    && p.tabs.length    < ALL_TABS.length)    cfg.tabs    = p.tabs;
+  if(p.widgets && p.widgets.length && p.widgets.length < ALL_WIDGETS.length) cfg.widgets = p.widgets;
+  if(p.settings && (p.settings.salesDays!==90 || p.settings.exclCat))        cfg.settings = p.settings;
+
+  const code=btoa(unescape(encodeURIComponent(JSON.stringify(cfg))));
+  let url=location.origin+location.pathname+'?access='+encodeURIComponent(code);
+
+  let finalUrl=url, shortened=false;
+  if(payload.shorten!==false){
+    const short=await shortenUrl(url);
+    if(short){finalUrl=short;shortened=true;}
+  }
+
+  try{
+    await navigator.clipboard.writeText(finalUrl);
+    const note = shortened?'(сокращено через is.gd)':(payload.shorten===false?'(без сокращения)':'(не удалось сократить — отправляется полная)');
+    alert('Ссылка скопирована! '+note+'\n\n'+finalUrl);
+  }catch{
+    prompt('Скопируйте ссылку:',finalUrl);
+  }
+}
+
+// ================================================================
+// VIEW-AS DROPDOWN (admin/director only)
+// ================================================================
+function renderViewAsDropdown(){
+  const dd=document.getElementById('viewas-dd');
+  if(!dd) return;
+  const canSee=userRole==='admin'||userRole==='director';
+  dd.style.display=canSee?'':'none';
+  if(!canSee) return;
+  const profs=getProfiles().filter(p=>p.role==='regional'||p.role==='operator');
+  let html=`<label class="dd-item"><input type="radio" name="viewas" value="" ${!viewAsProfileId?'checked':''} onchange="setViewAs('')"> <span>— Свой обзор —</span></label>`;
+  if(!profs.length){
+    html+=`<div style="padding:6px 13px;font-size:11px;color:var(--muted)">Нет профилей регионалов/операторов</div>`;
+  } else {
+    profs.forEach(p=>{
+      const meta = p.cities.length?`${p.cities.length} гор.`:'все города';
+      html+=`<label class="dd-item"><input type="radio" name="viewas" value="${p.id}" ${viewAsProfileId===p.id?'checked':''} onchange="setViewAs('${p.id}')"> <span>${esc(p.name)} <small style="color:var(--muted)">(${meta})</small></span></label>`;
+    });
+  }
+  document.getElementById('viewas-dd-items').innerHTML=html;
+  updateViewAsLabel();
+}
+function setViewAs(id){
+  viewAsProfileId=id;
+  updateViewAsLabel();
+  renderStock();
+  if(currentTab==='analytics') renderAnalytics();
+  if(currentTab==='runout')    renderRunout();
+}
+function updateViewAsLabel(){
+  const lbl=document.getElementById('viewas-label');
+  if(!lbl) return;
+  if(!viewAsProfileId){lbl.textContent='Просмотр от лица'; return;}
+  const p=getProfiles().find(pr=>pr.id===viewAsProfileId);
+  lbl.textContent = p ? '👤 '+p.name : 'Просмотр от лица';
 }
 
 // ================================================================
@@ -1861,7 +2103,7 @@ function sortByCity(storeId){
   else{sortStore=storeId;sortDir=1;}
   renderStock();
 }
-function toggleShowHidden(){showHidden=!showHidden;document.getElementById('btn-hidden').classList.toggle('active',showHidden);document.getElementById('table-wrap').classList.toggle('show-hidden',showHidden);}
+function toggleShowHidden(){showHidden=!showHidden;document.getElementById('btn-hidden').classList.toggle('active',showHidden);document.getElementById('table-wrap').classList.toggle('show-hidden',showHidden);renderStock();}
 
 function toggleHideProd(pid){
   const p=products[pid];if(!p) return;
