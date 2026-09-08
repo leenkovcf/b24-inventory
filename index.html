@@ -1154,6 +1154,44 @@ function matchProductByWords(low, nameMap) {
 // "Москве"→"Москв", "Кургане"→"Курган", "Рязани"→"Рязан", etc.
 const normCity = w => w.toLowerCase().replace(/[аяеёуюиьъ]+$/,'');
 
+// ================================================================
+// SMART SEARCH — слова и части слов в любом порядке
+// ================================================================
+// Приводим текст к «плоскому» виду: нижний регистр, ё→е,
+// любые разделители (пробел, дефис, точка, скобки) → один пробел.
+const searchNorm = s => String(s||'').toLowerCase().replace(/ё/g,'е')
+  .replace(/[^0-9a-zа-я]+/g,' ').trim();
+// Отбрасываем русское окончание: "москве"→"москв", "нижний"/"нижнем"→"нижн"
+const RU_END = /(?:ами|ями|ыми|ими|ого|его|ому|ему|ые|ие|ая|яя|ую|юю|ое|ее|ах|ях|ам|ям|ов|ев|ых|их|ый|ий|ой|ей|ом|ем|а|я|е|у|ю|и|ы|о|ь|й)$/;
+const searchStem = w => { const st=w.replace(RU_END,''); return st.length>=2?st:w; };
+// «Скелет» из согласных — ловит беглые гласные: "орел"/"орле" → "рл"
+const searchCons = w => w.replace(/[аяеуюиыоэьъй]/g,'');
+
+// Строит предикат: true, если КАЖДОЕ слово запроса найдено в тексте.
+// Порядок слов не важен; слово может быть частью слова ("бирюз" → "Бирюзова")
+// или в другом падеже ("москва" → "Москве на Маршала Бирюзова").
+function makeMatcher(query){
+  const terms = searchNorm(query).split(' ').filter(Boolean);
+  if(!terms.length) return () => true;
+  const stems = terms.map(searchStem);
+  const cons  = terms.map(searchCons);
+  return (...parts) => {
+    const hay = searchNorm(parts.join(' '));
+    if(!hay) return false;
+    const words = hay.split(' ');
+    return terms.every((t,i)=>{
+      if(hay.includes(t)) return true;                    // часть слова
+      const st=stems[i], cq=cons[i];
+      return words.some(w=>{
+        const sw = searchStem(w);                         // другой падеж
+        if(sw.startsWith(st) || (sw.length>=3 && st.startsWith(sw))) return true;
+        const cw = searchCons(w);                         // беглая гласная
+        return !!cq && cq===cw;
+      });
+    });
+  };
+}
+
 function resolveShop(val) {
   if(!val) return null;
   const str=String(val).trim();
@@ -1174,6 +1212,10 @@ function resolveShop(val) {
   // 5. Prefix match: "Москва" in "Москве на Маршала Бирюзова"
   s=stores.find(s=>{const nc=normCity(cityName(s.title));return nc.startsWith(nv)||nv.startsWith(nc);});
   if(s) return String(s.id);
+  // 6. Умный поиск: слова в любом порядке + беглые гласные ("Орле"↔"Орел")
+  const m=makeMatcher(lower);
+  const hits=stores.filter(s=>m(cityName(s.title)));
+  if(hits.length===1) return String(hits[0].id);
   return null;
 }
 
@@ -1203,11 +1245,12 @@ async function fetchAll(method,params,p0,p1){
 // ================================================================
 function getVisStores(cityQ){
   const hc=getHiddenCitiesSet();
+  const matchCity=makeMatcher(cityQ);
   // showHidden = true → не отфильтровываем скрытые города (для отладки/просмотра)
   let vis = showHidden
     ? stores.slice()
     : stores.filter(s=>!hc.has(String(s.id)));
-  vis = vis.filter(s=>!cityQ||cityName(s.title).toLowerCase().includes(cityQ));
+  vis = vis.filter(s=>matchCity(cityName(s.title), s.title));
   if((userRole==='regional'||userRole==='operator')&&myCities.size>0) vis=vis.filter(s=>myCities.has(String(s.id)));
   // Просмотр от лица профиля (только для admin/director)
   if((userRole==='admin'||userRole==='director') && viewAsProfileId){
@@ -1218,13 +1261,14 @@ function getVisStores(cityQ){
 }
 
 function renderStock(){
-  const cityQ=(document.getElementById('q-city')?.value||'').toLowerCase().trim();
-  const prodQ=(document.getElementById('q-product')?.value||'').toLowerCase().trim();
+  const cityQ=document.getElementById('q-city')?.value||'';
+  const prodQ=document.getElementById('q-product')?.value||'';
   const visStores=getVisStores(cityQ);
+  const matchProd=makeMatcher(prodQ);
 
   let visProducts=Object.values(products)
     .filter(p=>p.iblockId==MAIN_IBLOCK_ID)
-    .filter(p=>!prodQ||p.name.toLowerCase().includes(prodQ))
+    .filter(p=>matchProd(p.name))
     .filter(p=>selectedCats.has(p.sectionId||''));
 
   if(selectedAvail.size<3){
@@ -1520,8 +1564,8 @@ function renderAnalytics(){
 // RENDER: ADMIN
 // ================================================================
 function renderAdmin(){
-  const qProd=(document.getElementById('admin-q-prod')?.value||'').toLowerCase();
-  const qCity=(document.getElementById('admin-q-city')?.value||'').toLowerCase();
+  const matchProd=makeMatcher(document.getElementById('admin-q-prod')?.value||'');
+  const matchCity=makeMatcher(document.getElementById('admin-q-city')?.value||'');
   const hp=getHiddenProdsSet(), hc=getHiddenCitiesSet();
   const canManage=userRole==='admin'||userRole==='director';
 
@@ -1540,10 +1584,10 @@ function renderAdmin(){
   const prods=Object.values(products)
     .filter(p=>p.iblockId==MAIN_IBLOCK_ID)
     .filter(p=>!adminCatFilter||p.sectionId===adminCatFilter)
-    .filter(p=>!qProd||p.name.toLowerCase().includes(qProd))
+    .filter(p=>matchProd(p.name))
     .sort((a,b)=>a.name.localeCompare(b.name,'ru'));
 
-  let cities=stores.filter(s=>!qCity||cityName(s.title).toLowerCase().includes(qCity));
+  let cities=stores.filter(s=>matchCity(cityName(s.title), s.title));
   if((userRole==='regional'||userRole==='operator')&&myCities.size>0) cities=cities.filter(s=>myCities.has(String(s.id)));
 
   document.getElementById('prod-count').textContent=`${prods.filter(p=>!hp.has(p.id)).length} / ${prods.length}`;
@@ -1603,7 +1647,7 @@ function openProfileModal(id){
   // ВСЕ города (включая скрытые) для гибкого выбора
   document.getElementById('pm-cities').innerHTML=stores.map(s=>{
     const sid=String(s.id),chk=saved.has(sid)?'checked':'';
-    return `<label class="pm-city-item" data-name="${esc(cityName(s.title).toLowerCase())}"><input type="checkbox" value="${sid}" ${chk}><span>${esc(cityName(s.title))}</span></label>`;
+    return `<label class="pm-city-item" data-name="${esc(cityName(s.title)+' '+s.title)}"><input type="checkbox" value="${sid}" ${chk}><span>${esc(cityName(s.title))}</span></label>`;
   }).join('');
   document.getElementById('pm-city-search').value='';
 
@@ -1652,9 +1696,9 @@ function pmToggleAdv(){
   arr.style.transform=open?'rotate(90deg)':'';
 }
 function pmFilterCities(){
-  const q=(document.getElementById('pm-city-search').value||'').toLowerCase().trim();
+  const match=makeMatcher(document.getElementById('pm-city-search').value||'');
   document.querySelectorAll('#pm-cities .pm-city-item').forEach(el=>{
-    el.classList.toggle('pm-hide', q && !el.dataset.name.includes(q));
+    el.classList.toggle('pm-hide', !match(el.dataset.name));
   });
 }
 function pmInvertSelection(){
@@ -1863,10 +1907,10 @@ async function silentReload(){
 // CSV EXPORT
 // ================================================================
 function exportCSV(){
-  const visStores=getVisStores((document.getElementById('q-city')?.value||'').toLowerCase().trim());
-  const prodQ=(document.getElementById('q-product')?.value||'').toLowerCase().trim();
+  const visStores=getVisStores(document.getElementById('q-city')?.value||'');
+  const matchProd=makeMatcher(document.getElementById('q-product')?.value||'');
   const vp=Object.values(products).filter(p=>p.iblockId==MAIN_IBLOCK_ID&&!p.hidden)
-    .filter(p=>!prodQ||p.name.toLowerCase().includes(prodQ))
+    .filter(p=>matchProd(p.name))
     .filter(p=>selectedCats.has(p.sectionId||'')).sort((a,b)=>a.name.localeCompare(b.name,'ru'));
   let csv='﻿';
   csv+=['Товар','Категория',...visStores.map(s=>cityName(s.title)),'Итого'].join(';')+'\r\n';
