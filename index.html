@@ -104,6 +104,13 @@ body{font-family:-apple-system,Arial,sans-serif;font-size:13px;background:var(--
 
 /* TAB CONTENT */
 .tab-content{display:none;flex:1;flex-direction:column;overflow:hidden}
+/* Вкладка «На работе»: iframe на всю доступную высоту — внутри своя прокрутка,
+   и вторая полоса прокрутки снаружи только мешала бы. */
+.wt-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.wt-bar{display:flex;align-items:center;gap:10px;padding:7px 14px;border-bottom:1px solid var(--border);background:#fdfdfd;font-size:12px;color:var(--muted)}
+.wt-bar span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wt-frame{flex:1;width:100%;border:0;background:#0f141b}
+@media(max-width:700px){.wt-bar{padding:6px 8px;gap:6px}.wt-bar span{font-size:11px}}
 .tab-content.active{display:flex}
 
 /* FILTER BAR */
@@ -472,6 +479,7 @@ tbody tr:hover .hide-btn{display:inline}
       <button class="tab-btn active" onclick="setTab('stock',this)"><i class="bi bi-table"></i> Остатки</button>
       <button class="tab-btn" id="tab-analytics-btn" onclick="setTab('analytics',this)"><i class="bi bi-bar-chart-line"></i> Аналитика</button>
       <button class="tab-btn" id="tab-runout-btn" onclick="setTab('runout',this)"><i class="bi bi-hourglass-split"></i> Дефицит</button>
+      <button class="tab-btn" id="tab-worktime-btn" onclick="setTab('worktime',this)"><i class="bi bi-person-workspace"></i> На работе</button>
       <button class="tab-btn" id="tab-admin-btn" onclick="setTab('admin',this)"><i class="bi bi-sliders"></i> Управление</button>
     </nav>
     <div class="header-actions">
@@ -569,6 +577,19 @@ tbody tr:hover .hide-btn{display:inline}
   </div>
 
   <!-- TAB: УПРАВЛЕНИЕ -->
+  <div id="tab-worktime" class="tab-content">
+    <div class="wt-wrap">
+      <div class="wt-bar">
+        <span><i class="bi bi-broadcast"></i> Кто сейчас на работе — данные из кабинета «Рабочие графики», обновляются сами</span>
+        <button class="dd-hbtn" onclick="reloadWorktime()"><i class="bi bi-arrow-clockwise"></i> Обновить</button>
+        <a class="dd-hbtn" id="wt-open" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right"></i> Открыть отдельно</a>
+      </div>
+      <!-- src подставляется при первом открытии вкладки: иначе страница
+           грузилась бы в фоне у всех, кому она не нужна. -->
+      <iframe id="wt-frame" class="wt-frame" title="На работе" referrerpolicy="no-referrer"></iframe>
+    </div>
+  </div>
+
   <div id="tab-admin" class="tab-content">
     <div class="admin-wrap">
       <div class="admin-grid">
@@ -650,6 +671,20 @@ const REFRESH_SEC     = 600;
 const SALES_DAYS_KEY  = 'inv_sales_days_v1';
 let   SALES_DAYS      = parseInt(localStorage.getItem('inv_sales_days_v1')||'90');
 const RUNOUT_DAYS     = 30; // "soon running out" threshold
+
+// ── Вкладка «На работе» ───────────────────────────────────────────────────
+// Показывает страницу кабинета «Рабочие графики» (worktime.get-academy.ru)
+// в iframe. Копии кода здесь намеренно НЕТ: правки в кабинете должны появляться
+// в «Остатках» сами, а две одинаковые вёрстки разъезжаются за месяц.
+//
+// ⚠ Ключ лежит в открытом коде — репозиторий публичный. Он открывает только
+// ЧТЕНИЕ доски (кто на смене), менять по нему ничего нельзя, аналитика и звонки
+// недоступны. Если понадобится отозвать — «Настройки → Встраивание → Сменить
+// ключ» в кабинете, и сюда вписать новый.
+const WORKTIME_URL = 'https://worktime.get-academy.ru/embed/board';
+const WORKTIME_KEY = 'abab63af549a25de0deb0be35d67b65bcbf6949cc134a814';
+// Вкладку видят операторы КЦ и администратор.
+const WORKTIME_ROLES = ['operator','admin'];
 
 // ================================================================
 // STATE
@@ -928,6 +963,10 @@ function applyRoleUI() {
   if (canManage)     document.getElementById('profiles-section').style.display='';
   if (!canAnalytics) document.getElementById('tab-analytics-btn').style.display='none';
   if (!canAnalytics) document.getElementById('tab-runout-btn').style.display='none';
+  // «На работе» — операторам КЦ и админу: остальным график смен не нужен.
+  // ⚠ Ключ вкладки лежит в коде страницы, так что скрытие кнопки — вопрос удобства,
+  // а не защиты: доступ к самой доске ограничивать нужно в кабинете, сменой ключа.
+  if (!WORKTIME_ROLES.includes(userRole)) document.getElementById('tab-worktime-btn').style.display='none';
   if (userRole!=='admin') document.getElementById('btn-reset-settings').style.display='none';
 
   // Применить ограничения по вкладкам из ссылки/профиля (более узкие, чем роль)
@@ -1940,6 +1979,28 @@ function setTab(tab,btn){
   if(tab==='analytics') renderAnalytics();
   if(tab==='runout')    renderRunout();
   if(tab==='admin')     renderAdmin();
+  if(tab==='worktime')  openWorktime();
+}
+
+// Страница кабинета грузится при первом открытии вкладки, а не вместе с приложением:
+// иначе её опрос раз в полминуты шёл бы у всех, кто на неё даже не заходил.
+function worktimeUrl(){
+  return WORKTIME_URL + '?key=' + encodeURIComponent(WORKTIME_KEY);
+}
+function openWorktime(){
+  const f = document.getElementById('wt-frame');
+  if(!f) return;
+  const open = document.getElementById('wt-open');
+  if(open) open.href = worktimeUrl();
+  if(!f.getAttribute('src')) f.setAttribute('src', worktimeUrl());
+}
+// Перезагрузка кадра: сама доска обновляется раз в полминуты, но после разрыва
+// связи проще нажать кнопку, чем ждать. Меняем адрес, а не зовём reload():
+// у чужого домена reload() из нашего скрипта запрещён.
+function reloadWorktime(){
+  const f = document.getElementById('wt-frame');
+  if(!f) return;
+  f.setAttribute('src', worktimeUrl() + '&t=' + Date.now());
 }
 function renderRunout(){
   const wrap=document.getElementById('runout-wrap');
